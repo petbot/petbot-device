@@ -1,0 +1,17 @@
+
+[2015-06-10, 12:38:17 AM] Michael McAndrew: mount -t vfat -o loop /dev/nanda /boot
+[2015-06-10, 12:38:24 AM] Michael McAndrew: install_fextools.sh
+[2015-06-10, 12:38:25 AM] Michael McAndrew: cd /boot
+[2015-06-10, 12:38:39 AM] Michael McAndrew: bin2fex script.bin > script.fex
+[2015-06-10, 12:38:59 AM] Michael McAndrew: find csi0 in script.fex
+[2015-06-10, 12:39:02 AM] Michael McAndrew: enable
+[2015-06-10, 12:39:15 AM] Michael McAndrew: fex2bin script.fex > script.bin
+[2015-06-10, 12:39:17 AM] Michael McAndrew: reboot
+
+
+
+[2015-06-10, 12:33:05 AM] Michael McAndrew: echo 408000 > /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
+echo 25 > /sys/devices/system/cpu/cpufreq/ondemand/up_threshold
+echo 10 > /sys/devices/system/cpu/cpufreq/ondemand/sampling_down_factor
+echo 1 > /sys/devices/system/cpu/cpufreq/ondemand/io_is_busy
+[2015-06-10, 12:33:18 AM] Michael McAndrew: echo performance > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
