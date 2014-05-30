@@ -1,0 +1,82 @@
+#!/usr/bin/python
+
+from Queue import Queue
+import sys
+import socket
+import subprocess
+import thread
+import time
+import os
+import signal
+import logging
+
+
+def tcp_client(ip,tcp_port):
+	#print "start tcp with" , udp_port
+	stream_server = subprocess.Popen(['python', '/home/pi/petbot/code/device/tcp_client.py', ip, tcp_port], stdout=subprocess.PIPE)
+	pid=stream_server.pid
+	pid_q.put(pid)
+	try:
+		udp_port,xres,yres =  map(lambda x : int(x), stream_server.stdout.readline().strip().split())
+	except:
+		udp_port=0
+		xres=0
+		yres=0
+	udp_port_q.put(udp_port)
+	res_q.put((xres,yres))
+	stream_server.wait()
+	logging.warning("tcp client died")
+	reset_q.put(pid)
+
+def gst(xres,yres,ip,udp_port,target_bitrate):
+<<<<<<< HEAD
+	logging.warning('Sending to UDP port %d', udp_port)
+	stream_server = subprocess.Popen(['./gst-send',str(xres), str(yres), ip, str(udp_port), str(target_bitrate)], stdout=subprocess.PIPE)
+	print ['./gst-send',str(xres), str(yres), ip, str(udp_port), str(target_bitrate)]
+=======
+	print >> sys.stderr, "SENDING TO UDP ", udp_port
+	stream_server = subprocess.Popen(['/home/pi/petbot/code/device/gst-send',str(xres), str(yres), ip, str(udp_port), str(target_bitrate)], stdout=subprocess.PIPE)
+	print ['/home/pi/petbot/code/device/gst-send',str(xres), str(yres), ip, str(udp_port), str(target_bitrate)]
+>>>>>>> 97c14508b362865360843867b99ab47aeba34fe1
+	pid=stream_server.pid
+	pid_q.put(pid)
+	stream_server.wait()
+	logging.warning("gst died")
+	reset_q.put(pid)
+
+
+if __name__=='__main__':
+	if len(sys.argv)!=3:
+		print "%s ip tcp_port" % sys.argv[0]
+		sys.exit(1)
+	
+	ip=sys.argv[1]
+	tcp_port=int(sys.argv[2])
+	target_bitrate=500000
+
+	reset_q = Queue()
+	pid_q = Queue()
+	udp_port_q = Queue()
+	res_q = Queue()
+
+	#need to start and monitor node js on web_port with secreit
+	tcp_thread=thread.start_new_thread(tcp_client,(ip,str(tcp_port)))
+	udp_port=udp_port_q.get()
+	xres,yres=res_q.get()
+	print >> sys.stderr, "xres %d, yres %d, udp_port %d\n" % (xres,yres,udp_port)
+
+	#need to start and monitor the gstreamer 
+	if udp_port>0 and xres>0 and yres>0:
+		gst_thread=thread.start_new_thread(gst,(xres,yres,ip,udp_port,target_bitrate))
+		
+
+	that_pid=reset_q.get()
+	while not pid_q.empty():
+		pid=pid_q.get()
+		if pid!=that_pid:
+			try:
+				logging.warning("Killing %d" , pid)
+				os.kill(pid, signal.SIGTERM)
+			except:
+				logging.warning("Failed to kill %d", pid)
+
