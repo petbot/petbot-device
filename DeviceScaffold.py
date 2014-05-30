@@ -115,6 +115,20 @@ def connect(host, port):
 	asyncore.loop(timeout=100)
 	logging.warning('Disconnected from command server')
 
+pi_server="127.0.0.1"
+pi_server_port="54000"
+
+try:
+    h=open('/home/pi/petbot/petbot.conf')
+    for line in h.readlines():
+        line=line.split()
+        if line[0]=="pi-server":
+            pi_server=line[1].split(':')[0]
+            pi_server_port=int(line[1].split(':')[1])
+except:
+    print "Could not find config file"
+    sys.exit(1)
+
 
 if __name__ == '__main__':
 
