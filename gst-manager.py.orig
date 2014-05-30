@@ -13,7 +13,7 @@ import logging
 
 def tcp_client(ip,tcp_port):
 	#print "start tcp with" , udp_port
-	stream_server = subprocess.Popen(['python', '/home/pi/petbot/code/device/tcp_client.py', ip, tcp_port], stdout=subprocess.PIPE)
+	stream_server = subprocess.Popen(['python', '/home/pi/petbot/tcp_client.py', ip, tcp_port], stdout=subprocess.PIPE)
 	pid=stream_server.pid
 	pid_q.put(pid)
 	try:
@@ -35,8 +35,8 @@ def gst(xres,yres,ip,udp_port,target_bitrate):
 	print ['./gst-send',str(xres), str(yres), ip, str(udp_port), str(target_bitrate)]
 =======
 	print >> sys.stderr, "SENDING TO UDP ", udp_port
-	stream_server = subprocess.Popen(['/home/pi/petbot/code/device/gst-send',str(xres), str(yres), ip, str(udp_port), str(target_bitrate)], stdout=subprocess.PIPE)
-	print ['/home/pi/petbot/code/device/gst-send',str(xres), str(yres), ip, str(udp_port), str(target_bitrate)]
+	stream_server = subprocess.Popen(['/home/pi/petbot/gst-send',str(xres), str(yres), ip, str(udp_port), str(target_bitrate)], stdout=subprocess.PIPE)
+	print ['/home/pi/petbot/gst-send',str(xres), str(yres), ip, str(udp_port), str(target_bitrate)]
 >>>>>>> 97c14508b362865360843867b99ab47aeba34fe1
 	pid=stream_server.pid
 	pid_q.put(pid)

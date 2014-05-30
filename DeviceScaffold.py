@@ -36,14 +36,14 @@ def startStream(stream_port):
 	print "start stream"
 	logging.debug('startStream')
 	try: 
-		subprocess.Popen(['python','/home/pi/petbot/code/device/gst-manager.py', pi_server, str(stream_port)])
+		subprocess.Popen(['python','/home/pi/petbot/gst-manager.py', pi_server, str(stream_port)])
 		return True
 	except:
 		return False
 
 
 def sendCookie():
-	p=subprocess.Popen(['sudo','/home/pi/petbot/code/device/single_cookie/single_cookie', '10'],stdout=subprocess.PIPE)
+	p=subprocess.Popen(['sudo','/home/pi/petbot/single_cookie/single_cookie', '10'],stdout=subprocess.PIPE)
 	lines=p.stdout.readlines() # make sure its done the whole process first
 	for line in lines:
 		if line.find('COOKIE')>=0:
@@ -52,18 +52,18 @@ def sendCookie():
 
 
 def getSounds():
-	ls = listdir('/home/pi/petbot/code/device/sounds')
+	ls = listdir('/home/pi/petbot/sounds')
 	ls.sort()
 	l = map(lambda x : x.replace('.mp3',''), ls)
 	return l
 
 
 def playSound(idx):
-	ls=listdir('/home/pi/petbot/code/device/sounds')
+	ls=listdir('/home/pi/petbot/sounds')
 	ls.sort()
 	if idx>=len(ls) or idx<0:
 		return False
-	p=subprocess.Popen(['/usr/bin/mpg123','/home/pi/petbot/code/device/sounds/'+ls[idx]],stdout=subprocess.PIPE)
+	p=subprocess.Popen(['/usr/bin/mpg123','/home/pi/petbot/sounds/'+ls[idx]],stdout=subprocess.PIPE)
 	p.stdout.readlines()
 	return True
 	
