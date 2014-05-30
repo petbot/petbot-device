@@ -69,6 +69,8 @@ sudo rm -f /etc/supervisor/conf.d/petbot.conf 2> /dev/null
 sudo ln -s /home/pi/petbot/supervisord.conf /etc/supervisor/conf.d/petbot.conf
 sudo rm -f /etc/network/interfaces 2> /dev/null
 sudo ln -s /home/pi/petbot/configs/interfaces /etc/network/interfaces
+sudo rm -f /etc/default/ifplugd
+sudo ln -s /home/pi/petbot/configs/ifplugd /etc/default/ifplugd
 #if not exist wifi config then make one
 if [ ! -e /home/pi/wifi.conf ] ; then
 	cp /home/pi/petbot/configs/wifi.conf_template /home/pi/wifi.conf
