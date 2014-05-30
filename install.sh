@@ -73,7 +73,7 @@ sudo ln -s ~/petbot/code/device/supervisord.conf /etc/supervisor/conf.d/petbot.c
 if [ -e /etc/network/interfaces -o -h /etc/network/interfaces ]; then
 	sudo rm -f /etc/network/interfaces
 fi
-sudo rm -f /etc/network/interfaces
+sudo ln -s /home/petbot/configs/interfaces /etc/network/interfaces
 #if not exist wifi config then make one
 if [ ! -e /home/pi/petbot/wifi.conf ] ; then
 	cp /home/pi/petbot/configs/wifi.conf_template /home/pi/petbot/wifi.conf
