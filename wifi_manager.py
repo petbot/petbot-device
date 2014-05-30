@@ -3,13 +3,12 @@
 
 import sys
 import tempfile
-import subprocess
 from wifi import Cell, Scheme
 from wifi.utils import print_table, match as fuzzy_match
 from wifi.exceptions import ConnectionError, InterfaceError
 import logging
+import re
 import time
-
 
 #return a sorted list of networks by signal
 def getWifiNetworks():
@@ -25,45 +24,42 @@ def getWifiNetworks():
 	print l
 	return l
 
+
 #connect to wifi network with password
+ssid_exp = re.compile('^\s*ssid=\S*', re.MULTILINE)
+psk_exp = re.compile('^\s*psk=\S*', re.MULTILINE)
 def connectWifi(network, password):
-	p1=subprocess.Popen(['sudo','/sbin/ifdown', 'wlan0'],stdout=subprocess.PIPE)
-	f=open('/home/pi/petbot/wifi.conf','w')
-	p2=subprocess.Popen(['sudo','/usr/bin/wpa_passphrase', network, password ],stdout=f)
-	p1.wait()
-	p2.wait()
-	p3=subprocess.Popen(['sudo','/sbin/ifup', 'wlan0'],stdout=subprocess.PIPE)
-	p3.wait()
-	time.sleep(3)
-	p4=subprocess.Popen(['sudo','/sbin/wpa_cli', 'status'],stdout=subprocess.PIPE)
-	for line in p4.stdout.readlines():
-		#print line
-		if line.find('wpa_state')>=0 and line.find('COMPLETED')>=0:
-			return True
-				
+
+	logging.info("Connecting to wifi %s %s", network, password)
+
+	subprocess.check_call(['ifdown', 'wlan0'])
 	
-	'''logging.info("Connecting to wifi %s %s", network, password)
-	tf=tempfile.NamedTemporaryFile()
-	networks_file='/etc/network/interfaces' # tf.name
-	print tf.name
-	scheme_class = Scheme.for_file(networks_file)
-	if scheme_class.find('wlan0', 'default'): #todo sometimes /etc/network/interfaces gets into state that cannot be read without error here
-		saved_profile = Scheme.find('wlan0', 'default')
-		if saved_profile:
-			saved_profile.delete()
-	try:
-		network_cell = Cell.where('wlan0', lambda cell: cell.ssid == network)[0]
-	except IndexError:
-		return False
-	scheme = scheme_class.for_cell('wlan0','default',network_cell,password)
-	scheme.save()
-	logging.info("Network saved. Attempting to connect.")
-	try:
-		scheme.activate()
-	except:
-		return False
-	return True'''
+	# get wifi configuration template	
+	template_file = open('/home/pi/petbot/wifi.conf_template', 'r')
+	wifi_conf = template_file.read()
+	template_file.close()
+	
+	# replace network and password values
+	wpa_info = subprocess.check_output(['wpa_passphrase', network, password])
+	re.sub(ssid_exp, ssid_exp.search(wpa_info).group(0), wifi_conf)
+	re.sub(psk_exp, psk_exp.search(wpa_info).group(0), wifi_conf)
+
+	# write configuration
+	conf_file = open('/home/pi/petbot/wifi.conf', 'w')
+	conf_file.write(wifi_conf)
+	conf_file.close()
+
+	# bring up wifi and check status
+	subprocess.check_call(['ifup', 'wlan0'])
+	time.sleep(3)
+	wpa_status = subprocess.check_output(['wpa_cli', 'status'])
+	for line in wpa_status.split('\n')
+		
+		if line == 'wpa_state=COMPLETED':
+			return True
+
 	return False
+	
 
 
 
@@ -79,4 +75,4 @@ if __name__=='__main__':
 			sys.exit(1)
 		network=sys.argv[2]
 		password=sys.argv[3]
-		connectWifi(network,password)
+		connectToWifi(network,password)
