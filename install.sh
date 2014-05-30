@@ -65,12 +65,12 @@ git clone https://github.com/petbot/petbot-device.git -o github ~/petbot
 ############
 
 #link supervisord conf
-if [ -e /etc/supervisor/conf.d/petbot.conf ] ; then
+if [ -e /etc/supervisor/conf.d/petbot.conf -o -h /etc/supervisor/conf.d/petbot.conf ] ; then
 	sudo rm -f /etc/supervisor/conf.d/petbot.conf
 fi
 sudo ln -s ~/petbot/code/device/supervisord.conf /etc/supervisor/conf.d/petbot.conf
 #link interfaces
-if [ -e /etc/network/interfaces ]; then
+if [ -e /etc/network/interfaces -o -h /etc/network/interfaces ]; then
 	sudo rm -f /etc/network/interfaces
 fi
 sudo rm -f /etc/network/interfaces
