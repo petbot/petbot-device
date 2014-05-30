@@ -66,7 +66,7 @@ git clone https://github.com/petbot/petbot-device.git -o github ~/petbot
 
 #link supervisord conf
 sudo rm -f /etc/supervisor/conf.d/petbot.conf 2> /dev/null
-sudo ln -s ~/petbot/code/device/supervisord.conf /etc/supervisor/conf.d/petbot.conf
+sudo ln -s /home/petbot/supervisord.conf /etc/supervisor/conf.d/petbot.conf
 sudo rm -f /etc/network/interfaces 2> /dev/null
 sudo ln -s /home/petbot/configs/interfaces /etc/network/interfaces
 #if not exist wifi config then make one
