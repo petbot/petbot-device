@@ -66,7 +66,7 @@ git clone https://github.com/petbot/petbot-device.git -o github ~/petbot
 
 #link supervisord conf
 if [ -e /etc/supervisor/conf.d/petbot.conf ] ; then
-	sudo rm -f ~/petbot/code/device/supervisord.conf
+	sudo rm -f /etc/supervisor/conf.d/petbot.conf
 fi
 sudo ln -s ~/petbot/code/device/supervisord.conf /etc/supervisor/conf.d/petbot.conf
 #link interfaces
