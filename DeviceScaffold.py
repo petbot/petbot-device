@@ -19,7 +19,6 @@ def id_generator(size = 6, chars = string.ascii_uppercase + string.digits):
 def deviceID():
 	cpu_file = open('/proc/cpuinfo','r')
 	for line in cpu_file:
-
 		info = line.split(':')
 		if info and  info[0].strip() == 'Serial':
 			return info[1].strip()

@@ -53,8 +53,7 @@ def connectWifi(network, password):
 	subprocess.check_call(['ifup', 'wlan0'])
 	time.sleep(3)
 	wpa_status = subprocess.check_output(['wpa_cli', 'status'])
-	for line in wpa_status.split('\n')
-		
+	for line in wpa_status.split('\n'):
 		if line == 'wpa_state=COMPLETED':
 			return True
 
