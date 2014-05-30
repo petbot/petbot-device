@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-
+import subprocess
 import sys
 import tempfile
 from wifi import Cell, Scheme
@@ -26,8 +26,8 @@ def getWifiNetworks():
 
 
 #connect to wifi network with password
-ssid_exp = re.compile('^\s*ssid=\S*', re.MULTILINE)
-psk_exp = re.compile('^\s*psk=\S*', re.MULTILINE)
+ssid_exp = re.compile('^\s*ssid=.*', re.MULTILINE)
+psk_exp = re.compile('^\s*psk=.*', re.MULTILINE)
 def connectWifi(network, password):
 
 	logging.info("Connecting to wifi %s %s", network, password)
@@ -35,17 +35,17 @@ def connectWifi(network, password):
 	subprocess.check_call(['ifdown', 'wlan0'])
 	
 	# get wifi configuration template	
-	template_file = open('/home/pi/petbot/wifi.conf_template', 'r')
+	template_file = open('/home/pi/petbot/configs/wifi.conf_template', 'r')
 	wifi_conf = template_file.read()
 	template_file.close()
 	
 	# replace network and password values
 	wpa_info = subprocess.check_output(['wpa_passphrase', network, password])
-	re.sub(ssid_exp, ssid_exp.search(wpa_info).group(0), wifi_conf)
-	re.sub(psk_exp, psk_exp.search(wpa_info).group(0), wifi_conf)
+	wifi_conf=re.sub(ssid_exp, ssid_exp.search(wpa_info).group(0), wifi_conf)
+	wifi_conf=re.sub(psk_exp, psk_exp.search(wpa_info).group(0), wifi_conf)
 
 	# write configuration
-	conf_file = open('/home/pi/petbot/wifi.conf', 'w')
+	conf_file = open('/home/pi/wifi.conf', 'w')
 	conf_file.write(wifi_conf)
 	conf_file.close()
 
@@ -74,4 +74,4 @@ if __name__=='__main__':
 			sys.exit(1)
 		network=sys.argv[2]
 		password=sys.argv[3]
-		connectToWifi(network,password)
+		connectWifi(network,password)
