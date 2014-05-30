@@ -35,7 +35,7 @@ def startStream(stream_port):
 	print "start stream"
 	logging.debug('startStream')
 	try: 
-		subprocess.Popen(['python','/home/pi/petbot/code/device/gst-manager.py', '162.243.126.214', str(stream_port)])
+		subprocess.Popen(['python','/home/pi/petbot/gst-manager.py', '162.243.126.214', str(stream_port)])
 		return True
 	except:
 		return False
@@ -53,7 +53,7 @@ sendCookie.process = None
 
 
 def getSounds():
-	ls = listdir('/home/pi/petbot/code/device/sounds')
+	ls = listdir('/home/pi/petbot/sounds')
 	ls.sort()
 	l = map(lambda x : x.replace('.mp3',''), ls)
 	return l
@@ -64,13 +64,13 @@ def playSound(index):
 	if playSound.process and playSound.process.poll() == None:
 		raise Exception('Sound already playing.')
 
-	ls = listdir('/home/pi/petbot/code/device/sounds')
+	ls = listdir('/home/pi/petbot/sounds')
 	ls.sort()
 	
 	if not(0 <= index and index < len(ls)):
 		return False
 	
-	playSound.process = subprocess.Popen(['/usr/bin/mpg123','/home/pi/petbot/code/device/sounds/' + ls[index]])
+	playSound.process = subprocess.Popen(['/usr/bin/mpg123','/home/pi/petbot/sounds/' + ls[index]])
 	return True
 
 playSound.process = None
