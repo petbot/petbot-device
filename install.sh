@@ -79,3 +79,10 @@ if [ ! -e /home/pi/petbot/wifi.conf ] ; then
 	cp /home/pi/petbot/configs/wifi.conf_template /home/pi/petbot/wifi.conf
 fi
 
+
+##############################
+#Check MD5 sums and such here#
+##############################
+
+#sudo reboot
+
