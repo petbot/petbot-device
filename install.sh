@@ -10,6 +10,9 @@ wget -P /tmp https://bootstrap.pypa.io/get-pip.py
 sudo python /tmp/get-pip.py
 sudo pip install wifi
 
+#install gevent
+sudo apt-get install --force-yes -y python-gevent
+
 # supervisord
 sudo apt-get -y install supervisor
 

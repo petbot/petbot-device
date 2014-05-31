@@ -11,6 +11,8 @@ import time
 from wifi_manager import *
 import subprocess
 from time import sleep
+#from gevent import monkey
+#monkey.patch_all()
 
 def id_generator(size = 6, chars = string.ascii_uppercase + string.digits):
 	return "UPB_"+''.join(random.choice(chars) for _ in range(size))
@@ -46,7 +48,7 @@ def sendCookie():
 	if sendCookie.process and sendCookie.process.poll() == None:
 		raise Exception('Cookie drop already in progress.')
 
-	sendCookie.process = subprocess.Popen(['./single_cookie/single_cookie', '10'])
+	sendCookie.process = subprocess.Popen(['/home/pi/petbot/single_cookie/single_cookie', '10'])
 	return True	
 
 sendCookie.process = None
@@ -111,7 +113,7 @@ def connect(host, port):
 
 	#connect
 	logging.info("Listening for commands from server.")
-	asyncore.loop(timeout=100)
+	asyncore.loop(timeout=1)
 	logging.warning('Disconnected from command server')
 
 pi_server="127.0.0.1"
@@ -145,3 +147,4 @@ if __name__ == '__main__':
 			connect(args.host, args.port)
 			time.sleep(3+2*x)
 		#try to reset the network adapter?
+	print "CONNECTING"
