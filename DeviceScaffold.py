@@ -146,7 +146,10 @@ if __name__ == '__main__':
 
 	while True:
 		for x in range(10):
-			connect(args.host, args.port)
+			try:
+				connect(args.host, args.port)
+			except:
+				logging.warning("failed to connect")
 			time.sleep(3+2*x)
 		#try to reset the network adapter?
 	print "CONNECTING"
