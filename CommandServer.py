@@ -22,8 +22,8 @@ class CommandListener(asynchat.async_chat, SimpleXMLRPCDispatcher):
 		asynchat.async_chat.__init__(self)
                 #http://asyncspread.googlecode.com/svn-history/r107/trunk/asyncspread/connection.py
                 self.keepalive = True
-                self.keepalive_idle = 1 # every 10 seconds of idleness, send a keepalive (empty PSH/ACK)
-                self.keepalive_maxdrop = 1 # one minute
+                self.keepalive_idle = 3 # every 10 seconds of idleness, send a keepalive (empty PSH/ACK)
+                self.keepalive_maxdrop = 5 # one minute
                 self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
                 self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1) # enable
                 self.socket.setsockopt(socket.SOL_TCP, socket.TCP_KEEPIDLE, self.keepalive_idle)
