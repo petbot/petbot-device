@@ -46,7 +46,8 @@ def startStream(stream_port):
 def sendCookie():
 	
 	if sendCookie.process and sendCookie.process.poll() == None:
-		raise Exception('Cookie drop already in progress.')
+		#raise Exception('Cookie drop already in progress.')
+		return False
 
 	sendCookie.process = subprocess.Popen(['/home/pi/petbot/single_cookie/single_cookie', '10'])
 	return True	
@@ -64,7 +65,8 @@ def getSounds():
 def playSound(index):
 
 	if playSound.process and playSound.process.poll() == None:
-		raise Exception('Sound already playing.')
+		#raise Exception('Sound already playing.')
+		return False
 
 	ls = listdir('/home/pi/petbot/sounds')
 	ls.sort()
