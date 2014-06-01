@@ -26,8 +26,8 @@ print >> sys.stderr, udp_port, xres,yres
 sys.stdout.flush()
 
 while True:
-	time.sleep(1.2)
 	try:
+		time.sleep(1.2)
 		if (s.recv(4)!="ping"):
 			logging.error("Did not get ping, exiting")
 			break
@@ -38,8 +38,7 @@ while True:
 	except Exception, err:
 		logging.error("got exception")
 		logging.error(str(err))
-	#print "pong"
-	
+		break
 	#try:
 	#	r=s.recv(1024)
 	#	if len(r)==0:
