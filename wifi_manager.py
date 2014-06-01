@@ -18,7 +18,9 @@ def getWifiNetworks():
 			name=str(cell.ssid)
 			if len(name.strip())>1:
 				l.append((cell.signal,cell.encrypted,cell.ssid))
-		except:
+		except Exception, err: 
+			logging.warning("Failed to use cell, %s" , cell.ssid)
+		except: #this did not catch all exceptions, one slipped by....
 			logging.warning("Failed to use cell, %s" , cell.ssid)
 	l.sort(reverse=True)
 	print l
