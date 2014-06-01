@@ -27,11 +27,17 @@ sys.stdout.flush()
 
 while True:
 	time.sleep(1.2)
-	if (s.recv(4)!="ping"):
-		break
-	#print "ping"
-	if (s.send("pong")!=4):
-		break
+	try:
+		if (s.recv(4)!="ping"):
+			logging.error("Did not get ping, exiting")
+			break
+		#print "ping"
+		if (s.send("pong")!=4):
+			logging.error("Did not send pong, exiting")
+			break
+	except Exception, err:
+		logging.error("got exception")
+		logging.error(str(err))
 	#print "pong"
 	
 	#try:
