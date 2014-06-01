@@ -36,7 +36,7 @@ def check_ping():
 	ct=time.time() #current time
 	if last_ping[0]==-1:
 		print "let ping slide"
-	elif (ct-last_ping[0])>10:
+	elif (ct-last_ping[0])>15:
 		print "last ping was too long ago"
 		os._exit(1)
 		#sys.exit(1)
