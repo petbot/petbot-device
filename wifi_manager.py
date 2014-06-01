@@ -13,15 +13,22 @@ import time
 #return a sorted list of networks by signal
 def getWifiNetworks():
 	l=[]
-	for cell in Cell.all('wlan0'):
+	i=0
+	scanned=False
+	while not scanned and i<3:
+		l=[]
 		try:
-			name=str(cell.ssid)
-			if len(name.strip())>1:
-				l.append((cell.signal,cell.encrypted,cell.ssid))
-		except Exception, err: 
-			logging.warning("Failed to use cell, %s" , cell.ssid)
-		except: #this did not catch all exceptions, one slipped by....
-			logging.warning("Failed to use cell, %s" , cell.ssid)
+			for cell in Cell.all('wlan0'):
+				try:
+					name=str(cell.ssid)
+					if len(name.strip())>1:
+						l.append((cell.signal,cell.encrypted,cell.ssid))
+				except:
+					logging.warning("Failed to use cell, %s" , cell.ssid)
+			scanned=True
+		except: # please lets move this (wpa_cli scan / wpa_scan_results ? )
+			i+=1
+			time.sleep(1)
 	l.sort(reverse=True)
 	print l
 	return l
