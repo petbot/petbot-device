@@ -11,6 +11,9 @@ import time
 from wifi_manager import *
 import subprocess
 from time import sleep
+from threading import Timer
+import sys
+import os
 #from gevent import monkey
 #monkey.patch_all()
 
@@ -28,8 +31,22 @@ def deviceID():
 	raise Exception('Could not find device ID')
 	return id_generator()
 
+last_ping=[-1]
+def check_ping():
+	ct=time.time() #current time
+	if last_ping[0]==-1:
+		print "let ping slide"
+	elif (ct-last_ping[0])>10:
+		print "last ping was too long ago"
+		os._exit(1)
+		#sys.exit(1)
+	else:
+		print "all is well",ct,last_ping[0]
+	t=Timer(9.0,check_ping)
+	t.start()
 
 def ping():
+	last_ping[0]=time.time()
 	return True
 
 
@@ -115,6 +132,7 @@ def connect(host, port):
 
 	#connect
 	logging.info("Listening for commands from server.")
+	last_ping[0]=time.time()
 	asyncore.loop(timeout=1)
 	logging.warning('Disconnected from command server')
 
@@ -144,12 +162,16 @@ if __name__ == '__main__':
 	logging.basicConfig(format = '%(asctime)s\t%(levelname)s\t%(message)s')
 	#logging.basicConfig(filename = "petbot.log", level = logging.DEBUG, format = '%(asctime)s\t%(levelname)s\t%(module)s\t%(funcName)\t%(message)s')
 
+	#start timer
+	t=Timer(10.0,check_ping)
+	t.start()
 	while True:
 		for x in range(10):
 			try:
+				print "CONNECTING"
+				last_ping[0]=-1
 				connect(args.host, args.port)
 			except:
 				logging.warning("failed to connect")
 			time.sleep(3+2*x)
 		#try to reset the network adapter?
-	print "CONNECTING"
