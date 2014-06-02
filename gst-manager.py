@@ -53,6 +53,8 @@ if __name__=='__main__':
 	udp_port_q = Queue()
 	res_q = Queue()
 
+	os.system('killall -9 gst-send')
+
 	#need to start and monitor node js on web_port with secreit
 	tcp_thread=thread.start_new_thread(tcp_client,(ip,str(tcp_port)))
 	udp_port=udp_port_q.get()
