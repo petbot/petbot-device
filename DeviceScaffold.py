@@ -46,7 +46,15 @@ def update():
 	return (True, "update good")
 
 def version():
-	return subprocess.check_output(['/usr/bin/git','--git-dir=/home/pi/petbot/.git/','log','-n','1'])
+	#return subprocess.check_output(['/usr/bin/git','--git-dir=/home/pi/petbot/.git/','log','-n','1'])
+	try:
+		h=open('/home/pi/petbot/version')
+		return map(lambda x : x.strip(), h.readlines())
+		h.close()
+	except Exception, err:
+		print str(err)
+	return (False,"failed to get version")
+
 
 def deviceID():
 	cpu_file = open('/proc/cpuinfo','r')
