@@ -11,7 +11,7 @@ import time
 from wifi_manager import *
 import subprocess
 from time import sleep
-from threading import Timer
+from threading import Timer, Lock
 import sys
 import os
 #from gevent import monkey
@@ -20,6 +20,33 @@ import os
 def id_generator(size = 6, chars = string.ascii_uppercase + string.digits):
 	return "UPB_"+''.join(random.choice(chars) for _ in range(size))
 
+update_lock=Lock()
+
+def reboot():
+	update_lock.acquire()
+	try:
+		reboot_info = subprocess.check_output(['wpa_passphrase', network, password])
+	except Exception, err:
+		print str(err)
+		update_lock.release()
+		return (False, "Failed to reboot")
+	#dont release lock doing reboot!
+	#update_lock.release()
+	return (True, "Reboot was good")
+
+def update():
+	update_lock.acquire()
+	try:
+		update_info = subprocess.check_output(['wpa_passphrase', network, password])
+	except Exception, err:
+		print str(err)
+		update_lock.release()
+		return (False, "failed to update")
+	update_lock.release()
+	return (True, "update good")
+
+def version():
+	return subprocess.check_output(['/usr/bin/git','--git-dir=/home/pi/petbot/.git/','log','-n','1'])
 
 def deviceID():
 	cpu_file = open('/proc/cpuinfo','r')
@@ -123,6 +150,10 @@ def connect(host, port):
 
 	device.register_function(ping)
 	device.register_function(sleepPing)
+
+	device.register_function(version)
+	device.register_function(update)
+	device.register_function(reboot)
 
 	# register supervisord proxy to be accessible from device proxy
 	logging.info('Connecting supervisord to available by device proxy.')
