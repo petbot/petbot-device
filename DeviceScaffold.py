@@ -37,7 +37,7 @@ def reboot():
 def update():
 	update_lock.acquire()
 	try:
-		update_info = subprocess.check_output(['/home/pi/petbot/update.sh',shell=True])
+		update_info = subprocess.check_output(['/home/pi/petbot/update.sh'],shell=True)
 	except Exception, err:
 		print str(err)
 		update_lock.release()
