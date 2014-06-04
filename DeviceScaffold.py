@@ -25,7 +25,7 @@ update_lock=Lock()
 def reboot():
 	update_lock.acquire()
 	try:
-		reboot_info = subprocess.check_output(['wpa_passphrase', network, password])
+		reboot_info = subprocess.check_output(['/usr/bin/sudo','/sbin/reboot'])
 	except Exception, err:
 		print str(err)
 		update_lock.release()
@@ -37,7 +37,7 @@ def reboot():
 def update():
 	update_lock.acquire()
 	try:
-		update_info = subprocess.check_output(['wpa_passphrase', network, password])
+		update_info = subprocess.check_output(['/home/pi/petbot/update.sh',shell=True])
 	except Exception, err:
 		print str(err)
 		update_lock.release()
