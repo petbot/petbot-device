@@ -10,7 +10,7 @@
 
 int run(char * ip, int udp_port, int target_bitrate, int height, int width) {
 
-  GstCaps *capture_caps, *converted_caps;
+  GstCaps *capture_caps, *converted_caps,*h264_caps;
 
   GstElement *pipeline, *v4l2src, *videorate, *queue, *videoconvert, *omxh264enc, *rtph264pay, *udpsink;
   GstBus *bus;
@@ -33,6 +33,7 @@ int run(char * ip, int udp_port, int target_bitrate, int height, int width) {
   /* Create the caps filters */
   capture_caps = gst_caps_new_simple("video/x-raw","width", G_TYPE_INT, 640, "height", G_TYPE_INT, 480, "framerate", GST_TYPE_FRACTION, 30, 1, NULL);
   converted_caps = gst_caps_new_simple("video/x-raw","width", G_TYPE_INT, 640, "height", G_TYPE_INT, 480, "framerate", GST_TYPE_FRACTION, 15, 1, NULL);
+  h264_caps = gst_caps_new_simple("video/x-h264","profile", G_TYPE_STRING,"baseline",NULL);
 
 
   /* Create the empty pipeline */
@@ -67,7 +68,8 @@ int run(char * ip, int udp_port, int target_bitrate, int height, int width) {
     gst_object_unref (pipeline);
     return -1;
   } 
-  if (gst_element_link(omxh264enc , rtph264pay ) !=TRUE ) {
+  //if (gst_element_link(omxh264enc , rtph264pay ) !=TRUE ) {
+  if (gst_element_link_filtered(omxh264enc , rtph264pay, h264_caps ) !=TRUE ) {
     g_printerr ("Could not connect omxh264enc to rtph264pay.\n");
     gst_object_unref (pipeline);
     return -1;
