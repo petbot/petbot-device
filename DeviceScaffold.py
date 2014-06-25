@@ -1,17 +1,3 @@
-#This file is part of PetBot.
-#
-#    PetBot is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    PetBot is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 
 import argparse
 import asyncore
@@ -208,8 +194,8 @@ if __name__ == '__main__':
 
 	# get command line arguments
 	arg_parser = argparse.ArgumentParser(description = 'Act as device for manager on server.')
-	arg_parser.add_argument('-a', '--host', default = '162.243.126.214')
-	arg_parser.add_argument('-p', '--port', type = int, default = 54000)
+	arg_parser.add_argument('-a', '--host', default = pi_server)
+	arg_parser.add_argument('-p', '--port', type = int, default = pi_server_port)
 	args =  arg_parser.parse_args()
 
 	logging.basicConfig(format = '%(asctime)s\t%(levelname)s\t%(message)s')
