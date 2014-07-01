@@ -49,7 +49,7 @@ def version():
 	#return subprocess.check_output(['/usr/bin/git','--git-dir=/home/pi/petbot/.git/','log','-n','1'])
 	try:
 		h=open('/home/pi/petbot/version')
-		return map(lambda x : x.strip(), h.readlines())
+		return (True, map(lambda x : x.strip(), h.readlines()))
 		h.close()
 	except Exception, err:
 		print str(err)
@@ -114,19 +114,14 @@ def getSounds():
 	return l
 
 
-def playSound(index):
-
+def playSound(url):
 	if playSound.process and playSound.process.poll() == None:
 		#raise Exception('Sound already playing.')
 		return False
-
-	ls = listdir('/home/pi/petbot/sounds')
-	ls.sort()
-	
-	if not(0 <= index and index < len(ls)):
+	if url[:4]!='http':
 		return False
-	
-	playSound.process = subprocess.Popen(['/usr/bin/mpg123','/home/pi/petbot/sounds/' + ls[index]])
+	url=url.replace('get_sound/','get_sound_pi/'+deviceID()+'/')
+	playSound.process = subprocess.Popen(['/usr/bin/mpg123',url])
 	return True
 
 playSound.process = None

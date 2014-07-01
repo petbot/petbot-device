@@ -61,7 +61,9 @@ if __name__=='__main__':
 	
 	ip=sys.argv[1]
 	tcp_port=int(sys.argv[2])
-	target_bitrate=350000
+	#target_bitrate=350000
+	target_bitrate=500000
+	#target_bitrate=900000
 
 	reset_q = Queue()
 	pid_q = Queue()
