@@ -98,7 +98,8 @@ int run(char * ip, int udp_port, int target_bitrate, int height, int width) {
   /* set properties */
   g_object_set( G_OBJECT(v4l2src) , "do-timestamp", TRUE, NULL);
   g_object_set( G_OBJECT(omxh264enc), "target-bitrate", target_bitrate, "control-rate", OMX_Video_ControlRateVariableSkipFrames, NULL);
-  g_object_set( G_OBJECT(rtph264pay), "pt", 96, "config-interval",3,NULL);
+  //g_object_set( G_OBJECT(omxh264enc), "target-bitrate", target_bitrate, "control-rate", OMX_Video_ControlRateConstantSkipFrames, NULL);
+  g_object_set( G_OBJECT(rtph264pay), "pt", 96, "config-interval",1,NULL);
   g_object_set( G_OBJECT(udpsink), "host", ip, "port", udp_port, "sync",FALSE, "async", FALSE, NULL);
   g_object_set( G_OBJECT(queue), "max-size-buffers", 0, NULL);
   g_object_set( G_OBJECT(videorate), "drop-only", TRUE, NULL);  
