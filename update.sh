@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 #This file is part of PetBot.
 #
 #    PetBot is free software: you can redistribute it and/or modify
@@ -15,7 +14,6 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
-
 
 wget -N https://github.com/petbot/petbot-device/archive/master.zip -P /tmp
 
