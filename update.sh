@@ -25,4 +25,4 @@ fi
 
 sudo rm -rf /home/pi/petbot
 mv -T /home/pi/petbot-device-master /home/pi/petbot
-
+sudo reboot
