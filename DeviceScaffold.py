@@ -118,6 +118,12 @@ def playSound(url):
 	if playSound.process and playSound.process.poll() == None:
 		#raise Exception('Sound already playing.')
 		return False
+	try:
+		if (int(url))==8:
+			#old api for iOS
+			url='http://petbot.ca/static/sounds/mpu.mp3'
+	except:
+		pass
 	if url[:4]!='http':
 		return False
 	url=url.replace('get_sound/','get_sound_pi/'+deviceID()+'/')
