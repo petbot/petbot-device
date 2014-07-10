@@ -127,7 +127,7 @@ def playSound(url):
 	if url[:4]!='http':
 		return False
 	url=url.replace('get_sound/','get_sound_pi/'+deviceID()+'/')
-	playSound.process = subprocess.Popen(['/usr/bin/mpg123',url])
+	playSound.process = subprocess.Popen(['-c','/usr/bin/curl ' + url + ' | /usr/bin/mpg123 -'],shell=True)
 	return True
 
 playSound.process = None
