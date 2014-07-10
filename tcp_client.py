@@ -30,9 +30,9 @@ tcp_port=int(sys.argv[2])
 
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.setsockopt(socket.SOL_SOCKET, \
-                 socket.SO_KEEPALIVE, 1)
-s.settimeout(5.0)
+#s.setsockopt(socket.SOL_SOCKET, \
+#                 socket.SO_KEEPALIVE, 1)
+s.settimeout(8.0)
 s.connect((ip, tcp_port))
 udp_port = int(s.recv(9))
 xres = int(s.recv(9))

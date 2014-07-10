@@ -77,6 +77,7 @@ def check_ping():
 		#sys.exit(1)
 	else:
 		print "all is well",ct,last_ping[0]
+		#pass
 	t=Timer(9.0,check_ping)
 	t.start()
 
