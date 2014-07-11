@@ -22,6 +22,26 @@ def id_generator(size = 6, chars = string.ascii_uppercase + string.digits):
 
 update_lock=Lock()
 
+def report_log(ip,port):
+	log=[]
+	for file in os.listdir('/var/log/supervisor/'):
+		print >> sys.stderr, "IN REPORT LOG",file
+		try:
+			log+=["FILE\t"+file+'\n']
+			h=open('/var/log/supervisor/'+file,'r')
+			log+=h.readlines()
+			h.close()
+			print >> sys.stderr, "IN REPORT LOG",file
+		except:
+			print >> sys.stderr, "FAILED TO OPEN SOMETHING"
+		print >> sys.stderr, "IN REPORT LOG",file
+	print >> sys.stderr, len(log)
+	if len(log)>0:
+		x=subprocess.Popen(['/bin/nc',str(ip),str(port)],stdin=subprocess.PIPE)
+		print >> x.stdin, "".join(log)
+		return (True,"")
+	return (False,"")
+
 def reboot():
 	update_lock.acquire()
 	try:
@@ -164,6 +184,7 @@ def connect(host, port):
 	device.register_function(version)
 	device.register_function(update)
 	device.register_function(reboot)
+	device.register_function(report_log)
 
 	# register supervisord proxy to be accessible from device proxy
 	logging.info('Connecting supervisord to available by device proxy.')
