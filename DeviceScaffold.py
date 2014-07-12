@@ -44,6 +44,26 @@ def report_log(ip,port):
 		return (True,"")
 	return (False,"")
 
+def get_volume():
+	print "GETTING SOUND"
+	o=subprocess.check_output(['/usr/bin/amixer','cget','numid=1']).split('\n')
+	if len(o)!=5:
+		return (False,-1)
+	mn=float(o[1].split(',')[3].split('=')[1])
+	mx=float(o[1].split(',')[4].split('=')[1])
+	c=float(o[2].split('=')[1])
+	return (True,int(100*(c-mn)/(mx-mn)))
+
+def set_volume(pct):
+	print "SETTING SOUND"
+	o=subprocess.check_output(['/usr/bin/amixer','cset','numid=1',str(pct)+'%']).split('\n')
+	if len(o)!=5:
+		return (False,-1)
+	mn=float(o[1].split(',')[3].split('=')[1])
+	mx=float(o[1].split(',')[4].split('=')[1])
+	c=float(o[2].split('=')[1])
+	return (True,int(100*(c-mn)/(mx-mn)))
+	
 def reboot():
 	logging.debug('reboot')
 	update_lock.acquire()
@@ -192,6 +212,8 @@ def connect(host, port):
 	device.register_function(sendCookie)
 	device.register_function(getSounds)
 	device.register_function(playSound)
+	device.register_function(set_volume)
+	device.register_function(get_volume)
 
 	device.register_function(ping)
 	device.register_function(sleepPing)
