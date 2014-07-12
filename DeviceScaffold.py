@@ -116,7 +116,7 @@ def ping():
 def startStream(stream_port):
 	logging.debug('startStream')
 	try: 
-		subprocess.Popen(['python','/home/pi/petbot/gst-manager.py', '162.243.126.214', str(stream_port)])
+		subprocess.Popen(['/home/pi/petbot/gst-manager', '162.243.126.214', str(stream_port)])
 		return True
 	except:
 		return False
