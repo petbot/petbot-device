@@ -17,7 +17,7 @@ import os
 #from gevent import monkey
 #monkey.patch_all()
 
-LOG_FILENAME="/var/log/DEVICE_LOG"
+LOG_FILENAME="/var/log/supervisor/DEVICE_LOG"
 
 def id_generator(size = 6, chars = string.ascii_uppercase + string.digits):
 	return "UPB_"+''.join(random.choice(chars) for _ in range(size))
