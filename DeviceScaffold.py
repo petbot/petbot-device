@@ -93,6 +93,7 @@ def deviceID():
 	return id_generator()
 
 last_ping=[-1]
+c=[0]
 def check_ping():
 	ct=time.time() #current time
 	if last_ping[0]==-1:
@@ -102,7 +103,11 @@ def check_ping():
 		os._exit(1)
 		#sys.exit(1)
 	else:
-		logging.debug('all is well ' + str(ct) + " " +str(last_ping[0]))
+		if c[0]>100:
+			logging.debug('all is well ' + str(ct) + " " +str(last_ping[0]))
+			c[0]=0
+		else:
+			c[0]+=1
 		#print "all is well",ct,last_ping[0]
 		#pass
 	t=Timer(9.0,check_ping)
