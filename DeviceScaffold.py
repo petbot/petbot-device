@@ -17,6 +17,8 @@ import os
 #from gevent import monkey
 #monkey.patch_all()
 
+LOG_FILENAME="/var/log/DEVICE_LOG"
+
 def id_generator(size = 6, chars = string.ascii_uppercase + string.digits):
 	return "UPB_"+''.join(random.choice(chars) for _ in range(size))
 
@@ -43,6 +45,7 @@ def report_log(ip,port):
 	return (False,"")
 
 def reboot():
+	logging.debug('reboot')
 	update_lock.acquire()
 	try:
 		reboot_info = subprocess.check_output(['/usr/bin/sudo','/sbin/reboot'])
@@ -55,6 +58,7 @@ def reboot():
 	return (True, "Reboot was good")
 
 def update():
+	logging.debug('startStream')
 	update_lock.acquire()
 	try:
 		update_info = subprocess.check_output(['/home/pi/petbot/update.sh'],shell=True)
@@ -62,10 +66,11 @@ def update():
 		print str(err)
 		update_lock.release()
 		return (False, "failed to update")
-	update_lock.release()
+	#update_lock.release() - if good will reboot, dont release lock!
 	return (True, "update good")
 
 def version():
+	logging.debug('version')
 	#return subprocess.check_output(['/usr/bin/git','--git-dir=/home/pi/petbot/.git/','log','-n','1'])
 	try:
 		h=open('/home/pi/petbot/version')
@@ -77,6 +82,7 @@ def version():
 
 
 def deviceID():
+	logging.debug('deviceID')
 	cpu_file = open('/proc/cpuinfo','r')
 	for line in cpu_file:
 		info = line.split(':')
@@ -90,13 +96,14 @@ last_ping=[-1]
 def check_ping():
 	ct=time.time() #current time
 	if last_ping[0]==-1:
-		print "let ping slide"
+		logging.debug('let ping slide')
 	elif (ct-last_ping[0])>30:
-		print "last ping was too long ago"
+		logging.debug('last ping was too long ago')
 		os._exit(1)
 		#sys.exit(1)
 	else:
-		print "all is well",ct,last_ping[0]
+		logging.debug('all is well ' + str(ct) + " " +str(last_ping[0]))
+		#print "all is well",ct,last_ping[0]
 		#pass
 	t=Timer(9.0,check_ping)
 	t.start()
@@ -107,7 +114,6 @@ def ping():
 
 
 def startStream(stream_port):
-	print "start stream"
 	logging.debug('startStream')
 	try: 
 		subprocess.Popen(['python','/home/pi/petbot/gst-manager.py', '162.243.126.214', str(stream_port)])
@@ -117,11 +123,12 @@ def startStream(stream_port):
 
 
 def sendCookie():
-	
+	logging.debug('sendCookie')
 	if sendCookie.process and sendCookie.process.poll() == None:
 		#raise Exception('Cookie drop already in progress.')
 		return False
 
+	logging.debug('sendCookie - sent')
 	sendCookie.process = subprocess.Popen(['/home/pi/petbot/single_cookie/single_cookie', '10'])
 	return True	
 
@@ -129,6 +136,7 @@ sendCookie.process = None
 
 
 def getSounds():
+	logging.debug('getSounds')
 	ls = listdir('/home/pi/petbot/sounds')
 	ls.sort()
 	l = map(lambda x : x.replace('.mp3',''), ls)
@@ -136,6 +144,7 @@ def getSounds():
 
 
 def playSound(url):
+	logging.debug('playSound')
 	if playSound.process and playSound.process.poll() == None:
 		#raise Exception('Sound already playing.')
 		return False
@@ -149,6 +158,7 @@ def playSound(url):
 		return False
 	url=url.replace('get_sound/','get_sound_pi/'+deviceID()+'/')
 	playSound.process = subprocess.Popen(['-c','/usr/bin/curl ' + url + ' | /usr/bin/mpg123 -'],shell=True)
+	logging.debug('playSound - playing')
 	return True
 
 playSound.process = None
@@ -221,7 +231,7 @@ if __name__ == '__main__':
 	arg_parser.add_argument('-p', '--port', type = int, default = pi_server_port)
 	args =  arg_parser.parse_args()
 
-	logging.basicConfig(format = '%(asctime)s\t%(levelname)s\t%(message)s')
+	logging.basicConfig(format = '%(asctime)s\t%(levelname)s\t%(message)s',filename=LOG_FILENAME, level=logging.DEBUG)
 	#logging.basicConfig(filename = "petbot.log", level = logging.DEBUG, format = '%(asctime)s\t%(levelname)s\t%(module)s\t%(funcName)\t%(message)s')
 
 	#start timer
