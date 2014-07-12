@@ -188,6 +188,20 @@ void * gst_client(void * not_used ) { //(char * ip, int udp_port, int target_bit
 	      case GST_MESSAGE_ASYNC_DONE:
 	        g_print("ASYNC DONE\n");
 		break;
+	      case GST_MESSAGE_STATE_CHANGED:
+		{
+		GstState old_state, new_state, pending_state;
+    		gst_message_parse_state_changed(msg, &old_state, &new_state, &pending_state);
+		fprintf(stderr,"state changed , %s , %s , %s \n",gst_element_state_get_name(old_state),gst_element_state_get_name(new_state), gst_element_state_get_name(pending_state));
+		}
+		break;
+	      case GST_MESSAGE_STREAM_STATUS:
+		{
+		GstStreamStatusType message_type;
+      		gst_message_parse_stream_status(msg, &message_type, NULL);
+      		fprintf(stderr,"Stream status: %d\n", message_type);
+		}
+		break;
 	      default:
 		//fprintf(stderr,"GOT UNEXPECTED MESSAGE\n");
 		fprintf(stderr,"%s\n",GST_MESSAGE_TYPE_NAME(msg));
