@@ -49,7 +49,7 @@ GstElement *pipeline;
 sem_t restart_mutex;
 int shutdown_now;
 
-int retries=5;
+int retries=20;
 
 void reload_uvc() {
 	int pid=fork();
@@ -200,7 +200,7 @@ void * gst_client(void * not_used ) { //(char * ip, int udp_port, int target_bit
   bus = gst_element_get_bus (pipeline);
    
   /* Parse message */
-  int go_on=5;
+  int go_on=4;
   int stream_status_messages=0;
   while (go_on>0) {
   	msg = gst_bus_timed_pop_filtered (bus, GST_SECOND/2, GST_MESSAGE_ANY | GST_MESSAGE_STREAM_START | GST_MESSAGE_ASYNC_DONE | GST_MESSAGE_ERROR | GST_MESSAGE_EOS);
@@ -265,7 +265,7 @@ void * gst_client(void * not_used ) { //(char * ip, int udp_port, int target_bit
   gst_object_unref (pipeline);
   pipeline=NULL;
 	
-  if (retries==0) {
+  if (retries==0 || shutdown_now==1) {
   	sem_post(&restart_mutex);
   	return NULL;
   }
