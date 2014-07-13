@@ -27,17 +27,15 @@ update_lock=Lock()
 def report_log(ip,port):
 	log=[]
 	for file in os.listdir('/var/log/supervisor/'):
-		print >> sys.stderr, "IN REPORT LOG",file
 		try:
 			log+=["FILE\t"+file+'\n']
 			h=open('/var/log/supervisor/'+file,'r')
-			log+=h.readlines()
+			lines=h.readlines()
+			log+=lines
 			h.close()
-			print >> sys.stderr, "IN REPORT LOG",file
+			print >> sys.stderr, "IN REPORT LOG",file, len(lines)
 		except:
-			print >> sys.stderr, "FAILED TO OPEN SOMETHING"
-		print >> sys.stderr, "IN REPORT LOG",file
-	print >> sys.stderr, len(log)
+			print >> sys.stderr, "FAILED TO OPEN",file
 	if len(log)>0:
 		x=subprocess.Popen(['/bin/nc',str(ip),str(port)],stdin=subprocess.PIPE)
 		print >> x.stdin, "".join(log)
