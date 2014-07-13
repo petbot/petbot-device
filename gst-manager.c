@@ -76,7 +76,9 @@ void reload_uvc() {
 }
 
 void * gst_client(void * not_used ) { //(char * ip, int udp_port, int target_bitrate, int height, int width) {
-  reload_uvc();
+  if (retries%4==1) {
+  	reload_uvc();
+  }
   GstCaps *capture_caps, *converted_caps,*h264_caps;
 
   GstElement *v4l2src, *videorate, *queue, *videoconvert, *omxh264enc, *rtph264pay, *udpsink;
