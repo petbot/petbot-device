@@ -23,6 +23,9 @@
 #include <OMX_Video.h>
 #include <unistd.h>
 
+#include <sys/types.h>
+#include <sys/wait.h>
+
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <stdio.h>
@@ -48,8 +51,32 @@ int shutdown_now;
 
 int retries=5;
 
-void * gst_client(void * not_used ) { //(char * ip, int udp_port, int target_bitrate, int height, int width) {
+void reload_uvc() {
+	int pid=fork();
+	if (pid==0) {
+		//child
+		char * args[] = { "/sbin/modprobe", "-r", "uvcvideo", NULL };
+		int r = execv(args[0],args);
+		fprintf(stderr,"SHOULD NEVER REACH HERE %d\n",r);
+	}
+	//master
+	wait(NULL);
+	fprintf(stderr,"Unloaded UVC\n");
+	pid=fork();
+	if (pid==0) {
+		//child
+		char * args[] = { "/sbin/modprobe", "uvcvideo", NULL };
+		int r = execv(args[0],args);
+		fprintf(stderr,"SHOULD NEVER REACH HERE %d\n",r);
+	}
+	//master
+	wait(NULL);
+	fprintf(stderr,"Loaded UVC\n");
+	return;
+}
 
+void * gst_client(void * not_used ) { //(char * ip, int udp_port, int target_bitrate, int height, int width) {
+  reload_uvc();
   GstCaps *capture_caps, *converted_caps,*h264_caps;
 
   GstElement *v4l2src, *videorate, *queue, *videoconvert, *omxh264enc, *rtph264pay, *udpsink;
