@@ -24,6 +24,14 @@ def id_generator(size = 6, chars = string.ascii_uppercase + string.digits):
 
 update_lock=Lock()
 
+def report_dmesg(ip,port):
+	log=subprocess.check_output(['/bin/dmesg']).split('\n')
+	if len(log)>0:
+		x=subprocess.Popen(['/bin/nc',str(ip),str(port)],stdin=subprocess.PIPE)
+		print >> x.stdin, "\n".join(log)
+		return (True,"")
+	return (False,"")
+
 def report_log(ip,port):
 	log=[]
 	for file in os.listdir('/var/log/supervisor/'):
@@ -220,6 +228,7 @@ def connect(host, port):
 	device.register_function(update)
 	device.register_function(reboot)
 	device.register_function(report_log)
+	device.register_function(report_dmesg)
 
 	# register supervisord proxy to be accessible from device proxy
 	logging.info('Connecting supervisord to available by device proxy.')
