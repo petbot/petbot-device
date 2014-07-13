@@ -165,6 +165,13 @@ void * gst_client(void * not_used ) { //(char * ip, int udp_port, int target_bit
     return NULL;
   } 
 
+
+
+  //make sure TCP client did its work
+  if (gst_udp_port==0) {
+  	sem_wait(&tcp_client_mutex);
+  }
+	
   /* set properties */
 
   g_object_set( G_OBJECT(v4l2src) , "do-timestamp", TRUE, "io-mode",0,NULL);
@@ -325,6 +332,8 @@ int main(int argc, char *argv[]) {
 	exit(1);
   }
 
+
+  gst_udp_port=0;
   tcp_server_ip=argv[1];
   gst_server_ip=tcp_server_ip; //TODO make variable from server?
   tcp_server_port=atoi(argv[2]);
@@ -346,16 +355,6 @@ int main(int argc, char *argv[]) {
   if(iret1) {
     fprintf(stderr,"Error - pthread_create() return code: %d\n",iret1);
     exit(EXIT_FAILURE);
-  }
-  //wait for tcp client
-  sem_wait(&tcp_client_mutex);
-  if (gst_xres==320) {
-	assert(gst_yres==240);
-  } else if (gst_xres==640) {
-	assert(gst_yres==480);
-  } else {
-	printf("unsupported resoltuions. supported is 320x240 and 640x480\n");
-	exit(1);
   }
   //start gst client
   iret2 = pthread_create( &gst_thread, NULL, gst_client, NULL);
