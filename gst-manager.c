@@ -31,6 +31,7 @@
 #include <pthread.h>
 #include <semaphore.h>
 
+
 sem_t tcp_client_mutex;
 char * tcp_server_ip;
 int tcp_server_port;
@@ -45,6 +46,7 @@ GstElement *pipeline;
 sem_t restart_mutex;
 int shutdown_now;
 
+int retries=5;
 
 void * gst_client(void * not_used ) { //(char * ip, int udp_port, int target_bitrate, int height, int width) {
 
@@ -137,7 +139,8 @@ void * gst_client(void * not_used ) { //(char * ip, int udp_port, int target_bit
   } 
 
   /* set properties */
-  g_object_set( G_OBJECT(v4l2src) , "do-timestamp", TRUE, NULL);
+
+  g_object_set( G_OBJECT(v4l2src) , "do-timestamp", TRUE, "io-mode",0,NULL);
   g_object_set( G_OBJECT(omxh264enc), "target-bitrate", target_bitrate, "control-rate", OMX_Video_ControlRateVariableSkipFrames, NULL);
   //g_object_set( G_OBJECT(omxh264enc), "target-bitrate", target_bitrate, "control-rate", OMX_Video_ControlRateConstantSkipFrames, NULL);
   g_object_set( G_OBJECT(rtph264pay), "pt", 96, "config-interval",1,NULL);
@@ -163,7 +166,8 @@ void * gst_client(void * not_used ) { //(char * ip, int udp_port, int target_bit
   bus = gst_element_get_bus (pipeline);
    
   /* Parse message */
-  int go_on=2;
+  int go_on=5;
+  int stream_status_messages=0;
   while (go_on>0) {
   	msg = gst_bus_timed_pop_filtered (bus, GST_SECOND/2, GST_MESSAGE_ANY | GST_MESSAGE_STREAM_START | GST_MESSAGE_ASYNC_DONE | GST_MESSAGE_ERROR | GST_MESSAGE_EOS);
 	  if (msg != NULL) {
@@ -200,6 +204,7 @@ void * gst_client(void * not_used ) { //(char * ip, int udp_port, int target_bit
 		GstStreamStatusType message_type;
       		gst_message_parse_stream_status(msg, &message_type, NULL);
       		fprintf(stderr,"Stream status: %d\n", message_type);
+		stream_status_messages++;
 		}
 		break;
 	      default:
@@ -212,9 +217,9 @@ void * gst_client(void * not_used ) { //(char * ip, int udp_port, int target_bit
 		if (shutdown_now==1) {
 			break;
 		}
-		/*if (got_async==0) {
+		if (stream_status_messages<6) {
 			go_on-=1;
-		}*/
+		}
 	} 
   }
  
@@ -225,8 +230,14 @@ void * gst_client(void * not_used ) { //(char * ip, int udp_port, int target_bit
   gst_element_set_state (pipeline, GST_STATE_NULL);
   gst_object_unref (pipeline);
   pipeline=NULL;
-  sem_post(&restart_mutex);
-  return NULL;
+	
+  if (retries==0) {
+  	sem_post(&restart_mutex);
+  	return NULL;
+  }
+  retries-=1;
+  fprintf(stderr,"Retrying internally %d\n",retries);
+  return gst_client(NULL); //try again
 }
 
 
