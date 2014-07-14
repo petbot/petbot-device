@@ -175,9 +175,10 @@ void * gst_client(void * not_used ) { //(char * ip, int udp_port, int target_bit
   }
 	
   /* set properties */
-
+  //gst_base_src_set_live (GST_BASE_SRC (v4l2src), TRUE);
   g_object_set( G_OBJECT(v4l2src) , "do-timestamp", TRUE, "io-mode",0,NULL);
-  g_object_set( G_OBJECT(omxh264enc), "target-bitrate", target_bitrate, "control-rate", OMX_Video_ControlRateVariableSkipFrames, NULL);
+  //g_object_set( G_OBJECT(omxh264enc), "target-bitrate", target_bitrate, "control-rate", OMX_Video_ControlRateVariableSkipFrames, NULL);
+  g_object_set( G_OBJECT(omxh264enc), "target-bitrate", target_bitrate, "control-rate", OMX_Video_ControlRateVariable, NULL);
   //g_object_set( G_OBJECT(omxh264enc), "target-bitrate", target_bitrate, "control-rate", OMX_Video_ControlRateConstantSkipFrames, NULL);
   g_object_set( G_OBJECT(rtph264pay), "pt", 96, "config-interval",1,NULL);
   g_object_set( G_OBJECT(udpsink), "host", gst_server_ip, "port", gst_udp_port, "sync",FALSE, "async", FALSE, NULL);
@@ -193,6 +194,10 @@ void * gst_client(void * not_used ) { //(char * ip, int udp_port, int target_bit
     sem_post(&gst_client_mutex);
     sem_post(&restart_mutex);
     return NULL;
+  } else if (ret==GST_STATE_CHANGE_ASYNC) {
+	fprintf(stderr,"STILL ASYNC\n");
+  } else if (ret==GST_STATE_CHANGE_SUCCESS) {
+        fprintf(stderr,"CHANGE SUCCESS\n");
   }
   
   fprintf(stderr, "Started pipeline\n");
