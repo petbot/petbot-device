@@ -146,7 +146,11 @@ def ping():
 
 def startStream(stream_port):
 	logging.debug('startStream')
-	try: 
+	try:
+		subprocess.check_output(['/usr/bin/killall','gst-manager'])
+	except:
+		print "DID NOT KILL OLD GST"
+	try:
 		subprocess.Popen(['/home/pi/petbot/gst-manager', '162.243.126.214', str(stream_port)])
 		return True
 	except:
