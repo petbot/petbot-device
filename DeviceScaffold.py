@@ -186,7 +186,7 @@ def playSound(url):
 	try:
 		if (int(url))==8:
 			#old api for iOS
-			url='http://petbot.ca/static/sounds/mpu.mp3'
+			url='https://petbot.ca/static/sounds/mpu.mp3'
 	except:
 		pass
 	if url[:4]!='http':
