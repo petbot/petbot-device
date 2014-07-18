@@ -51,28 +51,65 @@ int shutdown_now;
 
 int retries=20;
 
-void reload_uvc() {
+void unload_module(char * s) {
 	int pid=fork();
 	if (pid==0) {
 		//child
-		char * args[] = { "/sbin/modprobe", "-r", "uvcvideo", NULL };
+		char * args[] = { "/usr/bin/sudo","/sbin/rmmod", "-f", s, NULL };
 		int r = execv(args[0],args);
 		fprintf(stderr,"SHOULD NEVER REACH HERE %d\n",r);
 	}
 	//master
 	wait(NULL);
-	fprintf(stderr,"Unloaded UVC\n");
-	pid=fork();
+}
+
+void load_module(char *s ) {
+	int pid=fork();
 	if (pid==0) {
 		//child
-		char * args[] = { "/sbin/modprobe", "uvcvideo", NULL };
+		char * args[] = { "/usr/bin/sudo", "/sbin/modprobe", s, NULL };
 		int r = execv(args[0],args);
 		fprintf(stderr,"SHOULD NEVER REACH HERE %d\n",r);
 	}
 	//master
 	wait(NULL);
+}
+
+void reload_uvc() {
+	fprintf(stderr,"remogin\n");
+	unload_module("uvcvideo");
+	unload_module("videobuf2_core");
+	unload_module("videobuf2_vmalloc");
+	unload_module("videodev");
+	unload_module("uvcvideo");
+	unload_module("videobuf2_core");
+	unload_module("videobuf2_vmalloc");
+	unload_module("videodev");
+	exit(1);
+	load_module("videodev");
+	load_module("videobuf2_core");
+	load_module("videobuf2_vmalloc");
+	load_module("uvcvideo");
+	load_module("videodev");
+	load_module("videobuf2_core");
+	load_module("videobuf2_vmalloc");
+	load_module("uvcvideo");
 	fprintf(stderr,"Loaded UVC\n");
 	return;
+}
+
+void * gst_client(void * not_used );
+
+void * retry() {
+  if (retries==0 || shutdown_now==1) {
+	fprintf(stderr,"REALLY GIVING UP\n");
+    	sem_post(&gst_client_mutex);
+  	sem_post(&restart_mutex);
+  	return NULL;
+  }
+  retries-=1;
+  fprintf(stderr,"Retrying internally %d\n",retries);
+  return gst_client(NULL); //try again
 }
 
 void * gst_client(void * not_used ) { //(char * ip, int udp_port, int target_bitrate, int height, int width) {
@@ -110,7 +147,7 @@ void * gst_client(void * not_used ) { //(char * ip, int udp_port, int target_bit
    
   if (!pipeline || !v4l2src || !videorate || !queue || !videoconvert || !omxh264enc || !rtph264pay || !udpsink) {
     g_printerr ("Not all elements could be created.\n");
-    return NULL;
+    return retry();
   }
   
   /* Build the pipeline */
@@ -119,52 +156,45 @@ void * gst_client(void * not_used ) { //(char * ip, int udp_port, int target_bit
   /* Link the eleemnts */
   if (gst_element_link_filtered(v4l2src , videorate, capture_caps) !=TRUE ) {
     g_printerr ("Could not connect v4l2src to videorate.\n");
+    gst_element_set_state (pipeline, GST_STATE_NULL);
     gst_object_unref (pipeline);
     pipeline=NULL;
-    sem_post(&gst_client_mutex);
-    sem_post(&restart_mutex);
-    return NULL;
+    return retry();
   } 
   if (gst_element_link_filtered(videorate , queue, converted_caps) !=TRUE ) {
     g_printerr ("Could not connect videorate to queue.\n");
+    gst_element_set_state (pipeline, GST_STATE_NULL);
     gst_object_unref (pipeline);
     pipeline=NULL;
-    sem_post(&gst_client_mutex);
-    sem_post(&restart_mutex);
-    return NULL;
+    return retry();
   } 
   if (gst_element_link(queue , videoconvert ) !=TRUE ) {
     g_printerr ("Could not connect queue to videoconvert.\n");
+    gst_element_set_state (pipeline, GST_STATE_NULL);
     gst_object_unref (pipeline);
     pipeline=NULL;
-    sem_post(&gst_client_mutex);
-    sem_post(&restart_mutex);
-    return NULL;
+    return retry();
   } 
   if (gst_element_link(videoconvert , omxh264enc ) !=TRUE ) {
     g_printerr ("Could not connect videoconvert to omxh264enc.\n");
     gst_object_unref (pipeline);
     pipeline=NULL;
-    sem_post(&gst_client_mutex);
-    sem_post(&restart_mutex);
-    return NULL;
+    return retry();
   } 
   //if (gst_element_link(omxh264enc , rtph264pay ) !=TRUE ) {
   if (gst_element_link_filtered(omxh264enc , rtph264pay, h264_caps ) !=TRUE ) {
     g_printerr ("Could not connect omxh264enc to rtph264pay.\n");
+    gst_element_set_state (pipeline, GST_STATE_NULL);
     gst_object_unref (pipeline);
     pipeline=NULL;
-    sem_post(&gst_client_mutex);
-    sem_post(&restart_mutex);
-    return NULL;
+    return retry();
   } 
   if (gst_element_link(rtph264pay , udpsink ) !=TRUE ) {
     g_printerr ("Could not connect rpth264pay to udpsink.\n");
+    gst_element_set_state (pipeline, GST_STATE_NULL);
     gst_object_unref (pipeline);
     pipeline=NULL;
-    sem_post(&gst_client_mutex);
-    sem_post(&restart_mutex);
-    return NULL;
+    return retry();
   } 
 
 
@@ -176,7 +206,7 @@ void * gst_client(void * not_used ) { //(char * ip, int udp_port, int target_bit
 	
   /* set properties */
   //gst_base_src_set_live (GST_BASE_SRC (v4l2src), TRUE);
-  g_object_set( G_OBJECT(v4l2src) , "do-timestamp", TRUE, "io-mode",0,NULL);
+  g_object_set( G_OBJECT(v4l2src) , "do-timestamp", TRUE, "io-mode",1,NULL);
   //g_object_set( G_OBJECT(omxh264enc), "target-bitrate", target_bitrate, "control-rate", OMX_Video_ControlRateVariableSkipFrames, NULL);
   g_object_set( G_OBJECT(omxh264enc), "target-bitrate", target_bitrate, "control-rate", OMX_Video_ControlRateVariable, NULL);
   //g_object_set( G_OBJECT(omxh264enc), "target-bitrate", target_bitrate, "control-rate", OMX_Video_ControlRateConstantSkipFrames, NULL);
@@ -189,11 +219,10 @@ void * gst_client(void * not_used ) { //(char * ip, int udp_port, int target_bit
   ret = gst_element_set_state (pipeline, GST_STATE_PLAYING);
   if (ret == GST_STATE_CHANGE_FAILURE) {
     g_printerr ("Unable to set the pipeline to the playing state.\n");
+    gst_element_set_state (pipeline, GST_STATE_NULL);
     gst_object_unref (pipeline);
     pipeline=NULL;
-    sem_post(&gst_client_mutex);
-    sem_post(&restart_mutex);
-    return NULL;
+    return retry();
   } else if (ret==GST_STATE_CHANGE_ASYNC) {
 	fprintf(stderr,"STILL ASYNC\n");
   } else if (ret==GST_STATE_CHANGE_SUCCESS) {
@@ -205,11 +234,14 @@ void * gst_client(void * not_used ) { //(char * ip, int udp_port, int target_bit
   sem_post(&gst_client_mutex);
   /* Wait until error or EOS */
   bus = gst_element_get_bus (pipeline);
-   
+
+  guint64 last_in=0, last_out=0, last_dropped=0, last_duplicated=0;
+  int i=0;   
+
   /* Parse message */
   int go_on=4;
   int stream_status_messages=0;
-  while (go_on>0) {
+  while (1>0) {
   	msg = gst_bus_timed_pop_filtered (bus, GST_SECOND/2, GST_MESSAGE_ANY | GST_MESSAGE_STREAM_START | GST_MESSAGE_ASYNC_DONE | GST_MESSAGE_ERROR | GST_MESSAGE_EOS);
 	  if (msg != NULL) {
 	    //fprintf(stderr, "Got a messsage , %d , %s\n", GST_MESSAGE_TYPE (msg), GST_MESSAGE_TYPE_NAME(msg));
@@ -237,7 +269,7 @@ void * gst_client(void * not_used ) { //(char * ip, int udp_port, int target_bit
 		{
 		GstState old_state, new_state, pending_state;
     		gst_message_parse_state_changed(msg, &old_state, &new_state, &pending_state);
-		fprintf(stderr,"state changed , %s , %s , %s \n",gst_element_state_get_name(old_state),gst_element_state_get_name(new_state), gst_element_state_get_name(pending_state));
+		fprintf(stderr,"state change , %s , %s , %s \n",gst_element_state_get_name(old_state),gst_element_state_get_name(new_state), gst_element_state_get_name(pending_state));
 		}
 		break;
 	      case GST_MESSAGE_STREAM_STATUS:
@@ -255,11 +287,48 @@ void * gst_client(void * not_used ) { //(char * ip, int udp_port, int target_bit
 	    }
 	    gst_message_unref (msg);
 	  } else {
+		//fprintf(stderr,"TIMEOUT!\n");
 		if (shutdown_now==1) {
 			break;
 		}
 		if (stream_status_messages<6) {
+			if (go_on==0) {
+				fprintf(stderr,"BAILING!\n");
+				reload_uvc();
+				exit(1);
+				return retry();
+				fprintf(stderr,"CHANGING STATE!\n");
+				gboolean locked = gst_element_is_locked_state(pipeline);
+				if (locked) {
+					fprintf(stderr,"LOCKED!!!\n");
+				} else {
+					fprintf(stderr,"NOT LOCKED!\n");
+					gboolean locked = gst_element_is_locked_state(pipeline);
+					gst_element_set_locked_state(pipeline,TRUE);
+					fprintf(stderr,"ABORTED! %s \n" , locked ? "YES" : "NO");
+					gst_element_abort_state(pipeline);
+					fprintf(stderr,"ABORTED! %s \n" , locked ? "YES" : "NO");
+				}
+				gst_element_set_state (pipeline, GST_STATE_NULL);
+			}
 			go_on-=1;
+		}
+		if (i++==8) {
+		//lets see how many frames have been processed
+			//g_object_get (videorate, "in", &in, "out", &out, "drop", &dropped,
+			//    "duplicate", &duplicated, NULL);
+			guint64 out;
+			g_object_get (videorate, "out", &out, NULL);
+			if (out-last_out<10) {
+				//fprintf(stderr,"%"G_GUINT64_FORMAT" %"G_GUINT64_FORMAT" %"G_GUINT64_FORMAT" %"G_GUINT64_FORMAT"\n",in,out,dropped,duplicated);
+				fprintf(stderr,"Frames out are low! %"G_GUINT64_FORMAT"\n",out);
+				gst_element_set_state (pipeline, GST_STATE_NULL);
+				break;
+			} else {
+				//fprintf(stderr,"Frames out are %"G_GUINT64_FORMAT"\n",out);
+			}
+			last_out=out;
+			i=0;
 		}
 	} 
   }
@@ -267,18 +336,15 @@ void * gst_client(void * not_used ) { //(char * ip, int udp_port, int target_bit
   fprintf(stderr, "Cleaning up\n");
  
   /* Free resources */
+  fprintf(stderr, "Cleaning up bus\n");
   gst_object_unref (bus);
-  gst_element_set_state (pipeline, GST_STATE_NULL);
-  gst_object_unref (pipeline);
-  pipeline=NULL;
+  fprintf(stderr, "Cleaning up pipeline\n");
+gst_element_set_state (pipeline, GST_STATE_NULL);
+	  gst_object_unref (pipeline);
+	  pipeline=NULL;
+	  fprintf(stderr, "Cleaning up unref\n");
 	
-  if (retries==0 || shutdown_now==1) {
-  	sem_post(&restart_mutex);
-  	return NULL;
-  }
-  retries-=1;
-  fprintf(stderr,"Retrying internally %d\n",retries);
-  return gst_client(NULL); //try again
+  return retry(); //try again
 }
 
 
