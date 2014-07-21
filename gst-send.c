@@ -191,12 +191,12 @@ void * run(void * v) {
 		go_on=-1;
 		break;
 	      case GST_MESSAGE_EOS:
-		g_print ("End-Of-Stream reached.\n");
+		//g_print ("End-Of-Stream reached.\n");
 		go_on=-1;
 		break;
 	      case GST_MESSAGE_STREAM_START:
 	      case GST_MESSAGE_ASYNC_DONE:
-	        g_print("ASYNC DONE\n");
+	        //g_print("ASYNC DONE\n");
 		break;
 	      case GST_MESSAGE_STATE_CHANGED:
 		{
@@ -222,7 +222,7 @@ void * run(void * v) {
 	    }
 	    gst_message_unref (msg);
 	  } else {
-		fprintf(stderr,"TIMEOUT!\n");
+		//fprintf(stderr,"TIMEOUT!\n");
 		if (shutdown_now==1) {
 			break;
 		}
@@ -250,7 +250,7 @@ void * run(void * v) {
 			last_out=out;
 			i=0;
 		}
-		fprintf(stderr,"TIMEOUT2!\n");
+		//fprintf(stderr,"TIMEOUT2!\n");
 	} 
   }
  
@@ -311,25 +311,25 @@ int main(int argc, char *argv[]) {
 fd_set rfds;
 struct timeval tv;
 int retval; 
-    tv.tv_sec = 10;
-    tv.tv_usec = 0;
 
 
 
   while (1>0) {
+    tv.tv_sec = 10;
+    tv.tv_usec = 0;
     FD_ZERO(&rfds);
     FD_SET(0, &rfds);
     FD_SET(pipefd[0], &rfds);
     retval = select(pipefd[0] + 1, &rfds, NULL, NULL, &tv);
-    fprintf(stderr,"gst-send->retval is %d\n",retval);
+    //fprintf(stderr,"gst-send->retval is %d\n",retval);
     if (FD_ISSET(0, &rfds)) {
-	fprintf(stderr,"gst-send->HAVE STUFF TO READ!\n");
+	fprintf(stderr,"gst-send->gst-manager says to kill gst-streamer\n");
 	break;
     } else if (FD_ISSET(pipefd[0], &rfds)) {
-	fprintf(stderr,"gst-send->CHILD WROTE ME\n");
+	fprintf(stderr,"gst-send->gst-streamer broke\n");
 	break;
     } else {
-	fprintf(stderr,"gst-send->GOT NOTHING!\n");
+	//fprintf(stderr,"gst-send->GOT NOTHING!\n");
 	//exit(1);
     } 
   }
@@ -343,8 +343,8 @@ int retval;
 		int send_back=GST_CLEAN | status;
 		write(1,&send_back,sizeof(int));
 	} else {
-		fprintf(stderr,"gst-send-> DIRY EXIT\n");
 		pthread_kill(gst_thread,-9);
+		fprintf(stderr,"gst-send-> DIRY EXIT\n");
 		int send_back=GST_DIRTY | status;
 		write(1,&send_back,sizeof(int));
 	}
