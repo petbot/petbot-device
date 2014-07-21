@@ -27,6 +27,8 @@
 
 #include <unistd.h>
 
+#include "codes.h"
+
 char * ip;
 int xres,yres,udp_port,target_bitrate;
 int shutdown_now=0;
@@ -34,15 +36,12 @@ sem_t gst_off;
 
 int pipefd[2];
 
-void * ret_run() {
-	fprintf(stderr,"Shutting down gst...\n");
-	sem_post(&gst_off);
-	fprintf(stderr,"Shutting down gst...\n");
-	fprintf(stdin,"POOP\n");
-	//close(0);
+int status=0;
+
+void ret_run() {
 	write(pipefd[1],"CLOSE",6);
 	fprintf(stderr,"Shutting down gst...\n");
-	return NULL;
+	return;
 }
 
 void * run(void * v) {
@@ -76,7 +75,10 @@ void * run(void * v) {
    
   if (!pipeline || !v4l2src || !videorate || !queue || !videoconvert || !omxh264enc || !rtph264pay || !udpsink) {
     g_printerr ("Not all elements could be created.\n");
-    return ret_run();
+    ret_run();
+    status=GST_DIED;
+    sem_post(&gst_off);
+    return NULL;
   }
   
   /* Build the pipeline */
@@ -86,33 +88,51 @@ void * run(void * v) {
   if (gst_element_link_filtered(v4l2src , videorate, capture_caps) !=TRUE ) {
     g_printerr ("Could not connect v4l2src to videorate.\n");
     gst_object_unref (pipeline);
-    return ret_run();
+    ret_run();
+    status=GST_DIED;
+    sem_post(&gst_off);
+    return NULL;
   } 
   if (gst_element_link_filtered(videorate , queue, converted_caps) !=TRUE ) {
     g_printerr ("Could not connect videorate to queue.\n");
     gst_object_unref (pipeline);
-    return ret_run();
+    ret_run();
+    status=GST_DIED;
+    sem_post(&gst_off);
+    return NULL;
   } 
   if (gst_element_link(queue , videoconvert ) !=TRUE ) {
     g_printerr ("Could not connect queue to videoconvert.\n");
     gst_object_unref (pipeline);
-    return ret_run();
+    ret_run();
+    status=GST_DIED;
+    sem_post(&gst_off);
+    return NULL;
   } 
   if (gst_element_link(videoconvert , omxh264enc ) !=TRUE ) {
     g_printerr ("Could not connect videoconvert to omxh264enc.\n");
     gst_object_unref (pipeline);
-    return ret_run();
+    ret_run();
+    status=GST_DIED;
+    sem_post(&gst_off);
+    return NULL;
   } 
   //if (gst_element_link(omxh264enc , rtph264pay ) !=TRUE ) {
   if (gst_element_link_filtered(omxh264enc , rtph264pay, h264_caps ) !=TRUE ) {
     g_printerr ("Could not connect omxh264enc to rtph264pay.\n");
     gst_object_unref (pipeline);
-    return ret_run();
+    ret_run();
+    status=GST_DIED;
+    sem_post(&gst_off);
+    return NULL;
   } 
   if (gst_element_link(rtph264pay , udpsink ) !=TRUE ) {
     g_printerr ("Could not connect rpth264pay to udpsink.\n");
     gst_object_unref (pipeline);
-    return ret_run();
+    ret_run();
+    status=GST_DIED;
+    sem_post(&gst_off);
+    return NULL;
   } 
 
   /* set properties */
@@ -133,7 +153,10 @@ void * run(void * v) {
     g_printerr ("Unable to set the pipeline to the playing state.\n");
     gst_element_set_state (pipeline, GST_STATE_NULL);
     gst_object_unref (pipeline);
-    return ret_run();
+    ret_run();
+    status=GST_DIED;
+    sem_post(&gst_off);
+    return NULL;
   } else if (ret==GST_STATE_CHANGE_ASYNC) {
 	fprintf(stderr,"STILL ASYNC\n");
   } else if (ret==GST_STATE_CHANGE_SUCCESS) {
@@ -205,7 +228,8 @@ void * run(void * v) {
 		}
 		if (stream_status_messages<6) {
 			if (go_on==0) {
-				return ret_run();
+    				status=GST_DIED;
+				break;
 			}
 			go_on-=1;
 		}
@@ -218,7 +242,7 @@ void * run(void * v) {
 			if (out-last_out<10) {
 				//fprintf(stderr,"%"G_GUINT64_FORMAT" %"G_GUINT64_FORMAT" %"G_GUINT64_FORMAT" %"G_GUINT64_FORMAT"\n",in,out,dropped,duplicated);
 				fprintf(stderr,"Frames out are low! %"G_GUINT64_FORMAT"\n",out);
-				gst_element_set_state (pipeline, GST_STATE_NULL);
+				status=GST_DIED;
 				break;
 			} else {
 				//fprintf(stderr,"Frames out are %"G_GUINT64_FORMAT"\n",out);
@@ -231,12 +255,15 @@ void * run(void * v) {
   }
  
   fprintf(stderr, "Cleaning up\n");
+  status=GST_DIED;
  
   /* Free resources */
+  ret_run();
   gst_object_unref (bus);
   gst_element_set_state (pipeline, GST_STATE_NULL);
   gst_object_unref (pipeline);
-  return ret_run();
+  sem_post(&gst_off);
+  return NULL;
 }
 
 int main(int argc, char *argv[]) {
@@ -288,28 +315,39 @@ int retval;
     tv.tv_usec = 0;
 
 
+
   while (1>0) {
     FD_ZERO(&rfds);
     FD_SET(0, &rfds);
     FD_SET(pipefd[0], &rfds);
     retval = select(pipefd[0] + 1, &rfds, NULL, NULL, &tv);
-    fprintf(stderr,"retval is %d\n",retval);
+    fprintf(stderr,"gst-send->retval is %d\n",retval);
     if (FD_ISSET(0, &rfds)) {
-	fprintf(stderr,"HAVE STUFF TO READ!\n");
-	  struct timespec ts;
-	  clock_gettime(CLOCK_REALTIME, &ts);
-	  ts.tv_sec += 2;
-	  sem_timedwait(&gst_off, &ts);
-	  pthread_kill(gst_thread,-9);
-	return 0;
+	fprintf(stderr,"gst-send->HAVE STUFF TO READ!\n");
+	break;
     } else if (FD_ISSET(pipefd[0], &rfds)) {
-	fprintf(stderr,"CHILD WROTE ME\n");
-	return 0;
+	fprintf(stderr,"gst-send->CHILD WROTE ME\n");
+	break;
     } else {
-	fprintf(stderr,"GOT NOTHING!\n");
+	fprintf(stderr,"gst-send->GOT NOTHING!\n");
 	//exit(1);
     } 
   }
+	shutdown_now=1;
+	struct timespec ts;
+	clock_gettime(CLOCK_REALTIME, &ts);
+	ts.tv_sec += 2;
+	int ret = sem_timedwait(&gst_off, &ts);
+	if (ret==0) {
+		fprintf(stderr,"gst-send-> CLEAN EXIT\n");
+		int send_back=GST_CLEAN | status;
+		write(1,&send_back,sizeof(int));
+	} else {
+		fprintf(stderr,"gst-send-> DIRY EXIT\n");
+		pthread_kill(gst_thread,-9);
+		int send_back=GST_DIRTY | status;
+		write(1,&send_back,sizeof(int));
+	}
 
   return 0; 
 }

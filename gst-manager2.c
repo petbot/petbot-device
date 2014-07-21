@@ -34,6 +34,7 @@
 #include <pthread.h>
 #include <semaphore.h>
 
+#include "codes.h"
 
 sem_t tcp_client_mutex;
 char * tcp_server_ip;
@@ -48,6 +49,12 @@ GstElement *pipeline;
 
 sem_t restart_mutex;
 int shutdown_now;
+
+int pipe_to_gst[2];
+int pipe_to_tcp[2];
+int pipe_from_gst[2];
+int pipe_from_tcp[2];
+
 
 int retries=20;
 
@@ -81,7 +88,6 @@ void reload_uvc() {
 	unload_module("videobuf2_core");
 	unload_module("videobuf2_vmalloc");
 	unload_module("videodev");
-	exit(1);
 	load_module("videodev");
 	load_module("videobuf2_core");
 	load_module("videobuf2_vmalloc");
@@ -112,19 +118,78 @@ void * gst_client(void * not_used ) { //(char * ip, int udp_port, int target_bit
 	snprintf(s_udp_port,128,"%d",gst_udp_port);
 	snprintf(s_bitrate,128,"%d",target_bitrate);
 	//fork and run gst-send
+	int pfd_to_child[2];
+	int pfd_from_child[2];
+	if (pipe(pfd_to_child)==-1) {
+		fprintf(stderr,"failed to open pipe to child");
+		exit(1);
+	}
+	if (pipe(pfd_from_child)==-1) {
+		fprintf(stderr,"failed to open pipe to child");
+		exit(1);
+	}
 	int pid=fork();
 	if (pid==0) {
+		close(pfd_to_child[1]); //close the write end
+		close(pfd_from_child[0]); //close the read end
+		dup2(pfd_to_child[0],0); // stdin from read pipe of to child
+		dup2(pfd_from_child[1],1); //stdout to write pipe of from child
 		//child
 		fprintf(stderr, "passing in %s x %s\n",s_xres,s_yres);
 		char * args[] = { "/home/pi/petbot/gst-send", s_xres,s_yres,gst_server_ip,s_udp_port, s_bitrate, NULL };
 		int r = execv(args[0],args);
 		fprintf(stderr,"SHOULD NEVER REACH HERE %d\n",r);
 	}
-	//master
+	close(pfd_to_child[0]); //close the write end
+	close(pfd_from_child[1]); //close the write end
+
 	sem_post(&gst_client_mutex);
-	fprintf(stderr,"GST_MANAGER_WAITING FOR GST_CLIENT\n");
-	wait(NULL);
-  	sem_wait(&restart_mutex);
+
+
+
+	while (1>0) {
+		int code=0;
+		//wait for wri
+		fd_set rfds;
+		struct timeval tv;
+		int retval;
+		tv.tv_sec = 10;
+		tv.tv_usec = 0;
+		while (1>0) {
+			FD_ZERO(&rfds);
+			FD_SET(pfd_from_child[0], &rfds);
+			FD_SET(pipe_to_gst[0], &rfds);
+			retval = select(MAX(pfd_from_child[0],pipe_to_gst[0]) + 1, &rfds, NULL, NULL, &tv);
+			fprintf(stderr,"retval x is %d\n",retval);
+			if (FD_ISSET(pfd_from_child[0], &rfds)) {
+				fprintf(stderr,"gst_client->read from child\n");
+				//should probably exit or do something based on code
+				int ret=read(pfd_from_child[0],&code,sizeof(int));
+				fprintf(stderr,"gst_client->read from child, %d\n",ret);
+				fprintf(stderr,"gst_cleint->code %d\n",code);
+				int send_back=GST_DIED;
+				write(pipe_from_gst[1],&send_back,sizeof(int));
+				break;
+			} else if (FD_ISSET(pipe_to_gst[0], &rfds)) {
+				fprintf(stderr,"gst_client->read from manager\n");
+				int ret=read(pipe_to_gst[0],&code,sizeof(int));
+				//need to kill child
+				int send_back=KILL_GST;
+				write(pfd_to_child[1],&send_back,sizeof(int));
+			} else {
+				fprintf(stderr,"gst_client->select_timeout\n");
+			}
+		}
+
+
+		//figure out if we should try to restart and if so how
+		if (code & GST_DIED) {
+			fprintf(stderr, "SHOULD WE RESTART\n");
+			reload_uvc();
+		}
+	}
+
+	//master
 	return NULL;
 }
 
@@ -167,18 +232,106 @@ void * tcp_client(void * not_used) {
    sem_post(&tcp_client_mutex);
 
    char * pong = "pong";
-   while (1) {
-      //fprintf(stderr,"ping/pong\n");
-      r = recvfrom(sockfd,recvline,4,0,NULL,NULL);
-      if (r!=4) {
-	fprintf(stderr, "got something other then ping\n");
-	sem_post(&restart_mutex);
-	return NULL;
-      }
-      sendto(sockfd,pong,strlen(pong),0,
-             (struct sockaddr *)&servaddr,sizeof(servaddr));
+        fd_set rfds;
+	int retval;
+   while (1>0) {
+		fprintf(stderr,"TCP LOOP\n");
+		FD_ZERO(&rfds);
+		FD_SET(pipe_to_tcp[0], &rfds);
+		FD_SET(sockfd, &rfds);
+		retval = select(MAX(sockfd,pipe_to_tcp[0]) + 1, &rfds, NULL, NULL, &tv);
+		if (FD_ISSET(pipe_to_tcp[0],&rfds)) {
+			//got signal from master
+			int code;
+			int ret=read(pipe_to_tcp[0],&code,sizeof(int));
+			assert(code==KILL_TCP);
+			//timeout, kill TCP ?
+			fprintf(stderr, "tcp got kill\n");
+			close(sockfd);
+			int send_back=TCP_DIED;;
+			write(pipe_from_tcp[1],&send_back,sizeof(int));
+			return NULL;
+		} else if (FD_ISSET(sockfd, &rfds)) {
+	     		r = recvfrom(sockfd,recvline,4,0,NULL,NULL);
+	      		if (r!=4) {
+				fprintf(stderr, "got something other then ping\n");
+				close(sockfd);
+				int send_back=TCP_DIED;;
+				write(pipe_from_tcp[1],&send_back,sizeof(int));
+				return NULL;
+	      		}
+			sleep(1);
+	      		sendto(sockfd,pong,strlen(pong),0,
+		     		(struct sockaddr *)&servaddr,sizeof(servaddr));
+		} else {
+			//timeout, kill TCP ?
+			fprintf(stderr, "tcp timeout\n");
+			close(sockfd);
+			int send_back=TCP_DIED;;
+			write(pipe_from_tcp[1],&send_back,sizeof(int));
+			return NULL;
+		}
    }
 }
+
+
+void monitor() {
+	int tcp_status=1;
+	int gst_status=1;
+	//start listening to news from chil
+	fd_set rfds;
+	struct timeval tv;
+	int retval;
+	tv.tv_sec = 10;
+	tv.tv_usec = 0;
+	while (1>0) {
+		FD_ZERO(&rfds);
+		FD_SET(pipe_from_gst[0], &rfds);
+		FD_SET(pipe_from_tcp[0], &rfds);
+		retval = select(MAX(pipe_from_gst[0],pipe_from_tcp[0]) + 1, &rfds, NULL, NULL, &tv);
+		fprintf(stderr,"retval y is %d\n",retval);
+
+		int code=0;
+		if (FD_ISSET(pipe_from_gst[0], &rfds)) {
+			fprintf(stderr,"READING FROM GST!\n");
+			int ret=read(pipe_from_gst[0],&code,sizeof(int));
+			assert(ret==sizeof(int) && code==GST_DIED);
+			gst_status=0;
+			if (tcp_status==1) {
+				int send_back=KILL_TCP;
+				fprintf(stderr,"SENDING KILL TCP\n");
+				int wrote = write(pipe_to_tcp[1],&send_back,sizeof(int));
+				if (wrote!=sizeof(int)) {
+					fprintf(stderr,"Failed to write to TCP\n");
+				}
+			} else {
+				fprintf(stderr,"gst-manager->gst is dead\n");
+			}
+		} else if (FD_ISSET(pipe_from_tcp[0],&rfds)) {
+			fprintf(stderr,"READING FROM TCP!\n");
+			int ret=read(pipe_from_tcp[0],&code,sizeof(int));
+			tcp_status=0;
+			assert(ret==sizeof(int) && code==TCP_DIED);
+			if (gst_status==1) {
+				int send_back=KILL_GST;
+				write(pipe_to_gst[1],&send_back,sizeof(int));
+			} else {
+				fprintf(stderr,"gst-manager->tcp is dead\n");
+			}
+		} else {
+			fprintf(stderr,"MONITOR TIMEOUT\n");
+		}
+		
+
+
+		if (gst_status==0 && tcp_status==0) {
+			break;
+		}
+	}
+	fprintf(stderr,"Exiting gst-manager\n");
+	exit(1);
+}
+
 
 int main(int argc, char *argv[]) {
   if (argc!=3) {
@@ -200,6 +353,18 @@ int main(int argc, char *argv[]) {
 
   sem_init(&restart_mutex, 0, 0);
   sem_init(&tcp_client_mutex, 0, 0);
+  if (pipe(pipe_to_gst)==-1) {
+	fprintf(stderr,"Failed to init pipe to gst\n");
+  }
+  if (pipe(pipe_to_tcp)==-1) {
+	fprintf(stderr,"Failed to init pipe to tcp\n");
+  }
+  if (pipe(pipe_from_gst)==-1) {
+	fprintf(stderr,"Failed to init pipe from gst\n");
+  }
+  if (pipe(pipe_from_tcp)==-1) {
+	fprintf(stderr,"Failed to init pipe from tcp\n");
+  }
 
   pthread_t tcp_thread, gst_thread;
   int  iret1, iret2;
@@ -219,6 +384,9 @@ int main(int argc, char *argv[]) {
   //wait for gst client
   sem_wait(&gst_client_mutex);
 
+
+
+  monitor();
 
   //wait for restart request
   sem_wait(&restart_mutex);
