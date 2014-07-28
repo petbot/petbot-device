@@ -117,41 +117,40 @@ void * gst_client(void * not_used ) { //(char * ip, int udp_port, int target_bit
 	snprintf(s_bitrate,128,"%d",target_bitrate);
 
 
-
-
 	while (1>0) {
-	//fork and run gst-send
-	int pfd_to_child[2];
-	int pfd_from_child[2];
-	if (pipe(pfd_to_child)==-1) {
-		fprintf(stderr,"failed to open pipe to child");
-		exit(1);
-	}
-	if (pipe(pfd_from_child)==-1) {
-		fprintf(stderr,"failed to open pipe to child");
-		exit(1);
-	}
-	int pid=fork();
-	if (pid==0) {
-		close(pfd_to_child[1]); //close the write end
-		close(pfd_from_child[0]); //close the read end
-		dup2(pfd_to_child[0],0); // stdin from read pipe of to child
-		dup2(pfd_from_child[1],1); //stdout to write pipe of from child
-		//child
-		fprintf(stderr, "passing in %s x %s\n",s_xres,s_yres);
-		char * args[] = { "/home/pi/petbot/gst-send", s_xres,s_yres,gst_server_ip,s_udp_port, s_bitrate, NULL };
-		int r = execv(args[0],args);
-		fprintf(stderr,"SHOULD NEVER REACH HERE %d\n",r);
-	}
-	close(pfd_to_child[0]); //close the write end
-	close(pfd_from_child[1]); //close the write end
-
+		//fork and run gst-send
+		int pfd_to_child[2];
+		int pfd_from_child[2];
+		if (pipe(pfd_to_child)==-1) {
+			fprintf(stderr,"failed to open pipe to child");
+			exit(1);
+		}
+		if (pipe(pfd_from_child)==-1) {
+			fprintf(stderr,"failed to open pipe to child");
+			exit(1);
+		}
+		int pid=fork();
+		if (pid==0) {
+			close(pfd_to_child[1]); //close the write end
+			close(pfd_from_child[0]); //close the read end
+			dup2(pfd_to_child[0],0); // stdin from read pipe of to child
+			dup2(pfd_from_child[1],1); //stdout to write pipe of from child
+			//child
+			fprintf(stderr, "passing in %s x %s\n",s_xres,s_yres);
+			char * args[] = { "/home/pi/petbot/gst-send", s_xres,s_yres,gst_server_ip,s_udp_port, s_bitrate, NULL };
+			int r = execv(args[0],args);
+			fprintf(stderr,"SHOULD NEVER REACH HERE %d\n",r);
+		}
+		close(pfd_to_child[0]); //close the write end
+		close(pfd_from_child[1]); //close the write end
 
 		int code=0;
 		//wait for wri
 		fd_set rfds;
 		struct timeval tv;
 		int retval;
+
+		//read from child process until something happens
 		while (1>0) {
 			tv.tv_sec = 10;
 			tv.tv_usec = 0;
@@ -163,17 +162,17 @@ void * gst_client(void * not_used ) { //(char * ip, int udp_port, int target_bit
 			if (FD_ISSET(pfd_from_child[0], &rfds)) {
 				fprintf(stderr,"gst_client->read from gst-send\n");
 				//should probably exit or do something based on code
-				int ret=read(pfd_from_child[0],&code,sizeof(int));
-				char * buffer = &code;
+				read(pfd_from_child[0],&code,sizeof(int)); //TODO shoudl check ret val
 				fprintf(stderr,"gst_client->gst-send sends code %d\n",code);
-				fprintf(stderr,"got something %s\n",buffer);
 				break;
 			} else if (FD_ISSET(pipe_to_gst[0], &rfds)) {
 				fprintf(stderr,"gst_client->read from manager\n");
-				int ret=read(pipe_to_gst[0],&code,sizeof(int));
+				read(pipe_to_gst[0],&code,sizeof(int)); //TODO should check ret val
 				//need to kill child
 				int send_back=KILL_GST;
 				write(pfd_to_child[1],&send_back,sizeof(int));
+			} else if (retval<=0) {
+				//TODO
 			} else {
 				//fprintf(stderr,"gst_client->select_timeout\n");
 			}
@@ -201,45 +200,45 @@ void * gst_client(void * not_used ) { //(char * ip, int udp_port, int target_bit
 
 
 void * tcp_client(void * not_used) {
-   struct sockaddr_in servaddr;
-   char recvline[1000];
+	struct sockaddr_in servaddr;
+	char recvline[1000];
 
-   sockfd=socket(AF_INET,SOCK_STREAM,0);
+	sockfd=socket(AF_INET,SOCK_STREAM,0);
 
-   bzero(&servaddr,sizeof(servaddr));
-   servaddr.sin_family = AF_INET;
-   servaddr.sin_addr.s_addr=inet_addr(tcp_server_ip);
-   servaddr.sin_port=htons(tcp_server_port);
+	bzero(&servaddr,sizeof(servaddr));
+	servaddr.sin_family = AF_INET;
+	servaddr.sin_addr.s_addr=inet_addr(tcp_server_ip);
+	servaddr.sin_port=htons(tcp_server_port);
 
-   connect(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr));
+	connect(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr));
 
 
-   struct timeval tv;
-   tv.tv_sec = 10;  /* 10 Secs Timeout */
-   tv.tv_usec = 0;  // Not init'ing this can cause strange errors
-   setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv,sizeof(struct timeval));
+	struct timeval tv;
+	tv.tv_sec = 10;  /* 10 Secs Timeout */
+	tv.tv_usec = 0;  // Not init'ing this can cause strange errors
+	setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv,sizeof(struct timeval));
 
-   //Get udp port
-   int r = recvfrom(sockfd,recvline,9,0,NULL,NULL);
-   recvline[r]='\0';
-   gst_udp_port = atoi(recvline);
-   //Get the xres
-   r = recvfrom(sockfd,recvline,9,0,NULL,NULL);
-   recvline[r]='\0';
-   gst_xres = atoi(recvline);
-   //Get the yres
-   r = recvfrom(sockfd,recvline,9,0,NULL,NULL);
-   recvline[r]='\0';
-   gst_yres = atoi(recvline);
+	//Get udp port
+	int r = recvfrom(sockfd,recvline,9,0,NULL,NULL);
+	recvline[r]='\0';
+	gst_udp_port = atoi(recvline);
+	//Get the xres
+	r = recvfrom(sockfd,recvline,9,0,NULL,NULL);
+	recvline[r]='\0';
+	gst_xres = atoi(recvline);
+	//Get the yres
+	r = recvfrom(sockfd,recvline,9,0,NULL,NULL);
+	recvline[r]='\0';
+	gst_yres = atoi(recvline);
 
-   fprintf(stderr, "Got UDP %d xres %d yres %d\n",gst_udp_port,gst_xres,gst_yres);
+	fprintf(stderr, "Got UDP %d xres %d yres %d\n",gst_udp_port,gst_xres,gst_yres);
 
-   sem_post(&tcp_client_mutex);
+	sem_post(&tcp_client_mutex);
 
-   char * pong = "pong";
+	char * pong = "pong";
         fd_set rfds;
-	int retval;
-   while (1>0) {
+	//int retval;
+	while (1>0) {
 		struct timeval tv2;
 		tv2.tv_sec = 10;  /* 10 Secs Timeout */
 		tv2.tv_usec = 0;  // Not init'ing this can cause strange errors
@@ -247,11 +246,11 @@ void * tcp_client(void * not_used) {
 		FD_ZERO(&rfds);
 		FD_SET(pipe_to_tcp[0], &rfds);
 		FD_SET(sockfd, &rfds);
-		retval = select(MAX(sockfd,pipe_to_tcp[0]) + 1, &rfds, NULL, NULL, &tv2);
+		select(MAX(sockfd,pipe_to_tcp[0]) + 1, &rfds, NULL, NULL, &tv2); //TODO
 		if (FD_ISSET(pipe_to_tcp[0],&rfds)) {
 			//got signal from master
-			int code;
-			int ret=read(pipe_to_tcp[0],&code,sizeof(int));
+			int code=0;
+			read(pipe_to_tcp[0],&code,sizeof(int)); //TODO check retval
 			assert(code==KILL_TCP);
 			//timeout, kill TCP ?
 			fprintf(stderr, "tcp got kill\n");
@@ -289,14 +288,14 @@ void monitor() {
 	//start listening to news from chil
 	fd_set rfds;
 	struct timeval tv;
-	int retval;
+	//int retval;
 	while (1>0) {
 		tv.tv_sec = 10;
 		tv.tv_usec = 0;
 		FD_ZERO(&rfds);
 		FD_SET(pipe_from_gst[0], &rfds);
 		FD_SET(pipe_from_tcp[0], &rfds);
-		retval = select(MAX(pipe_from_gst[0],pipe_from_tcp[0]) + 1, &rfds, NULL, NULL, &tv);
+		select(MAX(pipe_from_gst[0],pipe_from_tcp[0]) + 1, &rfds, NULL, NULL, &tv);
 		//fprintf(stderr,"retval y is %d\n",retval);
 
 		int code=0;
