@@ -54,6 +54,8 @@ int pipe_to_tcp[2];
 int pipe_from_gst[2];
 int pipe_from_tcp[2];
 
+int tcp_status=1;
+int gst_status=1;
 
 int retries=10;
 
@@ -178,6 +180,11 @@ void * gst_client(void * not_used ) { //(char * ip, int udp_port, int target_bit
 			}
 		}
 
+		if (tcp_status==0 || retries==0) {
+			int send_back=GST_DIED;
+			write(pipe_from_gst[1],&send_back,sizeof(int));
+			break;
+		}
 
 		//figure out if we should try to restart and if so how
 		if (code & GST_DIED) {
@@ -186,11 +193,6 @@ void * gst_client(void * not_used ) { //(char * ip, int udp_port, int target_bit
 			retries--;
 		}
 
-		if (retries==0) {
-			int send_back=GST_DIED;
-			write(pipe_from_gst[1],&send_back,sizeof(int));
-			break;
-		}
 	}
 
 	//master
@@ -283,8 +285,8 @@ void * tcp_client(void * not_used) {
 
 
 void monitor() {
-	int tcp_status=1;
-	int gst_status=1;
+	tcp_status=1;
+	gst_status=1;
 	//start listening to news from chil
 	fd_set rfds;
 	struct timeval tv;
@@ -393,14 +395,6 @@ int main(int argc, char *argv[]) {
 
 
   monitor();
-
-  //wait for restart request
-  sem_wait(&restart_mutex);
-  fprintf(stderr,"GOT RESTART\n");
-  shutdown_now=1;
-  close(sockfd);
-  sem_wait(&restart_mutex);
-  fprintf(stderr,"GOT RESTART\n");
 
   return 0;
 }
