@@ -14,6 +14,7 @@ from time import sleep
 from threading import Timer, Lock
 import sys
 import os
+import RPi.GPIO as GPIO
 #from gevent import monkey
 #monkey.patch_all()
 
@@ -192,7 +193,8 @@ def playSound(url):
 	if url[:4]!='http':
 		return False
 	url=url.replace('get_sound/','get_sound_pi/'+deviceID()+'/')
-	playSound.process = subprocess.Popen(['-c','/usr/bin/curl ' + url + ' | /usr/bin/mpg123 -'],shell=True)
+	#playSound.process = subprocess.Popen(['-c','/usr/bin/curl ' + url + ' | /usr/bin/mpg123 -'],shell=True)
+	playSound.process = subprocess.Popen(['/home/pi/petbot/play_sound.sh',url])
 	logging.debug('playSound - playing')
 	return True
 
@@ -271,6 +273,7 @@ if __name__ == '__main__':
 
 	logging.basicConfig(format = '%(asctime)s\t%(levelname)s\t%(message)s',filename=LOG_FILENAME, level=logging.DEBUG)
 	#logging.basicConfig(filename = "petbot.log", level = logging.DEBUG, format = '%(asctime)s\t%(levelname)s\t%(module)s\t%(funcName)\t%(message)s')
+
 
 	#start timer
 	t=Timer(10.0,check_ping)
