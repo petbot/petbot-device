@@ -101,7 +101,7 @@ void * run(void * v) {
 	  sem_post(&gst_off);
 	  return NULL;
 	} 
-	if (gst_element_link(queue , videoconvert ) !=TRUE ) {
+	/*if (gst_element_link(queue , videoconvert ) !=TRUE ) {
 	  g_printerr ("Could not connect queue to videoconvert.\n");
 	  gst_object_unref (pipeline);
 	  ret_run();
@@ -110,6 +110,14 @@ void * run(void * v) {
 	  return NULL;
 	} 
 	if (gst_element_link(videoconvert , omxh264enc ) !=TRUE ) {
+	  g_printerr ("Could not connect videoconvert to omxh264enc.\n");
+	  gst_object_unref (pipeline);
+	  ret_run();
+	  status=GST_DIED;
+	  sem_post(&gst_off);
+	  return NULL;
+	} */
+	if (gst_element_link(queue , omxh264enc ) !=TRUE ) {
 	  g_printerr ("Could not connect videoconvert to omxh264enc.\n");
 	  gst_object_unref (pipeline);
 	  ret_run();
