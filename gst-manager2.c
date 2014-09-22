@@ -43,7 +43,7 @@ int sockfd;
 
 char * gst_server_ip;
 int gst_udp_port,gst_xres,gst_yres;
-int target_bitrate=350000;
+int target_bitrate=500000;
 GstElement *pipeline;
 
 sem_t restart_mutex;
