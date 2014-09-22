@@ -18,6 +18,9 @@ import RPi.GPIO as GPIO
 #from gevent import monkey
 #monkey.patch_all()
 
+t_reset=[0]
+t_count=[0]
+
 LOG_FILENAME="/var/log/supervisor/DEVICE_LOG"
 
 def id_generator(size = 6, chars = string.ascii_uppercase + string.digits):
@@ -122,22 +125,34 @@ def deviceID():
 last_ping=[-1]
 c=[0]
 def check_ping():
-	ct=time.time() #current time
-	if last_ping[0]==-1:
-		logging.debug('let ping slide')
-	elif (ct-last_ping[0])>30:
-		logging.debug('last ping was too long ago')
-		os._exit(1)
-		#sys.exit(1)
+	if last_ping[0]!=-1:
+		t_reset[0]=10.0 #if we already connnected check every 10 seconds
 	else:
-		if c[0]>100:
-			logging.debug('all is well ' + str(ct) + " " +str(last_ping[0]))
-			c[0]=0
+		t_reset[0]=3.0 #if we are dissconnected check every 3 seconds
+
+	if t_count[0]<t_reset[0]:
+		t_count[0]+=1 # increment clock
+	else:
+		t_count[0]=0 # reset the clock
+		ct=time.time() #current time
+		if last_ping[0]==-1:
+			logging.debug('let ping slide')
+			#call blink here
+			subprocess.Popen(['sudo /home/pi/petbot/led/led 6 blink 3'],shell=True)
+			#timer p
+		elif (ct-last_ping[0])>20:
+			logging.debug('last ping was too long ago')
+			os._exit(1)
+			#sys.exit(1)
 		else:
-			c[0]+=1
-		#print "all is well",ct,last_ping[0]
-		#pass
-	t=Timer(9.0,check_ping)
+			if c[0]>100:
+				logging.debug('all is well ' + str(ct) + " " +str(last_ping[0]))
+				c[0]=0
+			else:
+				c[0]+=1
+			#print "all is well",ct,last_ping[0]
+			#pass
+	t=Timer(1.0,check_ping)
 	t.start()
 
 def ping():
@@ -276,7 +291,9 @@ if __name__ == '__main__':
 
 
 	#start timer
-	t=Timer(10.0,check_ping)
+	t_reset[0]=10
+	t_count[0]=0
+	t=Timer(1.0,check_ping)
 	t.start()
 	while True:
 		for x in range(10):
@@ -286,5 +303,8 @@ if __name__ == '__main__':
 				connect(args.host, args.port)
 			except:
 				logging.warning("failed to connect")
+			if last_ping[0]!=-1:
+				last_ping[0]=-1
+				t_count[0]=t_reset[0]
 			time.sleep(3+2*x)
 		#try to reset the network adapter?
