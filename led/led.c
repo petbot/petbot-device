@@ -36,7 +36,7 @@ void blink() {
 	for (i=0; i<times*2; i++) {
 		softPwmWrite(pin, i%2==0 ? 0 : 100 );
 		fprintf(stderr,"Writting to pin %d, %d\n",pin,i%2==0 ? 0 : 100 );
-		delay(100);
+		delay(200);
 	}
 }
 
