@@ -21,6 +21,7 @@ import RPi.GPIO as GPIO
 t_reset=[0]
 t_count=[0]
 
+
 LOG_FILENAME="/var/log/supervisor/DEVICE_LOG"
 
 def id_generator(size = 6, chars = string.ascii_uppercase + string.digits):
@@ -124,6 +125,7 @@ def deviceID():
 
 last_ping=[-1]
 c=[0]
+not_streaming=[0]
 def check_ping():
 	if last_ping[0]!=-1:
 		t_reset[0]=10.0 #if we already connnected check every 10 seconds
@@ -136,15 +138,23 @@ def check_ping():
 		t_count[0]=0 # reset the clock
 		ct=time.time() #current time
 		if last_ping[0]==-1:
+			not_streaming[0]=0
 			logging.debug('let ping slide')
 			#call blink here
 			subprocess.Popen(['sudo /home/pi/petbot/led/led 6 blink 3'],shell=True)
 			#timer p
 		elif (ct-last_ping[0])>20:
 			logging.debug('last ping was too long ago')
+			if ping.selfie!=None:
+				print "SENDING STOP"
+				print >> ping.selfie.stdin, "STOP"
+				print >> sys.stderr, "WAITING FOR FULL STOP"
+				ping.selfie.stdout.readline()
+				ping.state="STOP"
 			os._exit(1)
 			#sys.exit(1)
 		else:
+			subprocess.Popen(['sudo /home/pi/petbot/led/led 6 on 0'],shell=True) # turn on LED
 			if c[0]>100:
 				logging.debug('all is well ' + str(ct) + " " +str(last_ping[0]))
 				c[0]=0
@@ -156,22 +166,49 @@ def check_ping():
 	t.start()
 
 def ping():
+	print "PING!",not_streaming[0]
 	last_ping[0]=time.time()
+	if startStream.process and startStream.process.poll()==None:
+		not_streaming[0]=0
+	else:
+		not_streaming[0]+=1
+		if not_streaming[0]>4:
+			if ping.selfie==None:
+				ping.selfie=subprocess.Popen('sudo /usr/bin/nice -n 19 /home/pi/petbot-selfie/src/atos /home/pi/cnn-networks/ccv2012.ntwk -2 /home/pi/cnn-networks/model_2012_l2_p5p50_n4 /dev/shm/out',stdin=subprocess.PIPE,stdout=subprocess.PIPE,shell=True)
+				print >> ping.selfie.stdin, "GO"
+				ping.state="GO"
+			elif ping.state=="STOP":
+				print >> ping.selfie.stdin, "GO"
+				ping.state="GO"
+			ping.state="GO"
 	return True
 
+ping.selfie=None
+ping.state=None
 
 def startStream(stream_port):
+	not_streaming[0]=0
+	print >> sys.stderr, "START STREAM!"
 	logging.debug('startStream')
+	print ping.selfie
+	if ping.selfie!=None:
+		print "SENDING STOP"
+		print >> ping.selfie.stdin, "STOP"
+		print >> sys.stderr, "WAITING FOR FULL STOP"
+		ping.selfie.stdout.readline()
+		ping.state="STOP"
+		print >> sys.stderr, "STOPPPED"
 	try:
 		subprocess.check_output(['/usr/bin/killall','gst-manager'])
 	except:
 		print "DID NOT KILL OLD GST"
 	try:
-		subprocess.Popen(['/home/pi/petbot/gst-manager', '162.243.126.214', str(stream_port)])
+		startStream.process=subprocess.Popen(['/home/pi/petbot/gst-manager', '162.243.126.214', str(stream_port)])
 		return True
 	except:
 		return False
 
+startStream.process=None
 
 def sendCookie():
 	logging.debug('sendCookie')
@@ -289,12 +326,17 @@ if __name__ == '__main__':
 	logging.basicConfig(format = '%(asctime)s\t%(levelname)s\t%(message)s',filename=LOG_FILENAME, level=logging.DEBUG)
 	#logging.basicConfig(filename = "petbot.log", level = logging.DEBUG, format = '%(asctime)s\t%(levelname)s\t%(module)s\t%(funcName)\t%(message)s')
 
+	subprocess.Popen(['sudo /home/pi/petbot/led/led 6 on 0'],shell=True) # turn on LED
 
 	#start timer
 	t_reset[0]=10
 	t_count[0]=0
 	t=Timer(1.0,check_ping)
 	t.start()
+	#start petselfie
+	ping.selfie=subprocess.Popen('sudo /home/pi/petbot-selfie/src/atos /home/pi/cnn-networks/ccv2012.ntwk -2 /home/pi/cnn-networks/model_2012_l2_p5p50_n4 /dev/shm/out',stdin=subprocess.PIPE,stdout=subprocess.PIPE,shell=True)
+	print >> ping.selfie.stdin, "GO"
+	ping.state="GO"
 	while True:
 		for x in range(10):
 			try:
@@ -306,5 +348,6 @@ if __name__ == '__main__':
 			if last_ping[0]!=-1:
 				last_ping[0]=-1
 				t_count[0]=t_reset[0]
+			not_streaming[0]=0
 			time.sleep(3+2*x)
 		#try to reset the network adapter?
