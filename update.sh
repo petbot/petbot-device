@@ -25,4 +25,33 @@ fi
 
 sudo rm -rf /home/pi/petbot
 mv -T /home/pi/petbot-device-master /home/pi/petbot
+
+
+
+
+
+wget -N https://github.com/petbot/petbot-selfie/archive/master.zip -P /tmp
+
+unzip -o /tmp/master.zip -d /home/pi
+if (( $? )); then
+	echo "Unzipping of repository failed. Exiting."
+	exit 1
+fi
+
+sudo rm -rf /home/pi/petbot-selfie
+mv -T /home/pi/petbot-selfie-master /home/pi/petbot-selfie
+
+
+
+wget -N https://github.com/petbot/petbot-bark/archive/master.zip -P /tmp
+
+unzip -o /tmp/master.zip -d /home/pi
+if (( $? )); then
+	echo "Unzipping of repository failed. Exiting."
+	exit 1
+fi
+
+sudo rm -rf /home/pi/petbot-bark
+mv -T /home/pi/petbot-bark-master /home/pi/petbot-bark
+
 sudo reboot
