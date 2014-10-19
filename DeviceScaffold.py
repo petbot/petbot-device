@@ -21,7 +21,10 @@ import RPi.GPIO as GPIO
 t_reset=[0]
 t_count=[0]
 
-enable_pet_selfie=False
+#enable_pet_selfie=True
+
+pet_selfie_filename="/home/pi/petselfie_enabled"
+
 #pet_selfie_cmd='sudo /usr/bin/nice -n 19 /home/pi/petbot-selfie/src/atos /home/pi/cnn-networks/ccv2012.ntwk -2 /home/pi/cnn-networks/model_2012_l2_p5p50_n4 /dev/shm/out'
 pet_selfie_cmd='sudo /usr/bin/nice -n 19 /home/pi/petbot-selfie/src/atos /home/pi/cnn-networks/petnet.ntwk 0 /dev/shm/out'
 
@@ -57,6 +60,18 @@ def report_log(ip,port):
 		print >> x.stdin, "".join(log)
 		return (True,"")
 	return (False,"")
+
+def get_selfie_status():
+	ping.enable_pet_selfie=os.path.isfile(pet_selfie_filename)
+	return ping.enable_pet_selfie
+
+def set_selfie_status(enabled):
+	if enabled:
+		open(pet_selfie_filename, 'a').close()
+	else:
+		if os.path.isfile(pet_selfie_filename):
+			os.remove(pet_selfie_filename)
+	return get_selfie_status()
 
 def get_volume():
 	print "GETTING SOUND"
@@ -148,7 +163,7 @@ def check_ping():
 			#timer p
 		elif (ct-last_ping[0])>20:
 			logging.debug('last ping was too long ago')
-			if enable_pet_selfie and ping.selfie!=None:
+			if ping.enable_pet_selfie and ping.selfie!=None:
 				print "SENDING STOP"
 				print >> ping.selfie.stdin, "STOP"
 				print >> sys.stderr, "WAITING FOR FULL STOP"
@@ -175,7 +190,7 @@ def ping():
 		not_streaming[0]=0
 	else:
 		not_streaming[0]+=1
-		if enable_pet_selfie and not_streaming[0]>4:
+		if ping.enable_pet_selfie and not_streaming[0]>4:
 			if ping.selfie==None:
 				ping.selfie=subprocess.Popen(pet_selfie_cmd,stdin=subprocess.PIPE,stdout=subprocess.PIPE,shell=True)
 				print >> ping.selfie.stdin, "GO"
@@ -193,7 +208,7 @@ def startStream(stream_port):
 	not_streaming[0]=0
 	print >> sys.stderr, "START STREAM!"
 	logging.debug('startStream')
-	if enable_pet_selfie and ping.selfie!=None:
+	if ping.enable_pet_selfie and ping.selfie!=None:
 		print "SENDING STOP"
 		print >> ping.selfie.stdin, "STOP"
 		print >> sys.stderr, "WAITING FOR FULL STOP"
@@ -336,7 +351,8 @@ if __name__ == '__main__':
 	t=Timer(1.0,check_ping)
 	t.start()
 	#start petselfie
-	if enable_pet_selfie:
+	get_selfie_status()
+	if ping.enable_pet_selfie:
 		ping.selfie=subprocess.Popen(pet_selfie_cmd,stdin=subprocess.PIPE,stdout=subprocess.PIPE,shell=True)
 		print >> ping.selfie.stdin, "GO"
 		ping.state="GO"
