@@ -63,7 +63,7 @@ def report_log(ip,port):
 
 def get_selfie_status():
 	ping.enable_pet_selfie=os.path.isfile(pet_selfie_filename)
-	return ping.enable_pet_selfie
+	return (True, ping.enable_pet_selfie)
 
 def set_selfie_status(enabled):
 	if enabled:
@@ -71,7 +71,7 @@ def set_selfie_status(enabled):
 	else:
 		if os.path.isfile(pet_selfie_filename):
 			os.remove(pet_selfie_filename)
-	return get_selfie_status()
+	return (True,get_selfie_status())
 
 def get_volume():
 	print "GETTING SOUND"
@@ -295,6 +295,11 @@ def connect(host, port):
 	device.register_function(playSound)
 	device.register_function(set_volume)
 	device.register_function(get_volume)
+
+	#selfie methods
+	device.register_function(set_selfie_status)
+	device.register_function(get_selfie_status)
+	
 
 	device.register_function(ping)
 	device.register_function(sleepPing)
