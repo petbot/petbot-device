@@ -62,6 +62,7 @@ def report_log(ip,port):
 	return (False,"")
 
 def get_selfie_status():
+	print >> sys.stderr,"Got request for selfie status"
 	ping.enable_pet_selfie=os.path.isfile(pet_selfie_filename)
 	return (True, ping.enable_pet_selfie)
 
@@ -71,7 +72,14 @@ def set_selfie_status(enabled):
 	else:
 		if os.path.isfile(pet_selfie_filename):
 			os.remove(pet_selfie_filename)
-	return (True,get_selfie_status())
+	print "got request to set to ", enabled, " now is ", get_selfie_status()
+	return (True,get_selfie_status()[1])
+
+def toggle_selfie():
+	enabled=get_selfie_status()[1]
+	print "toggle selfie", enabled
+	set_selfie_status(not enabled)
+	return (True,get_selfie_status()[1])
 
 def get_volume():
 	print "GETTING SOUND"
@@ -119,6 +127,7 @@ def update():
 	return (True, "update good")
 
 def version():
+	print >> sys.stderr,"Got request for version"
 	logging.debug('version')
 	#return subprocess.check_output(['/usr/bin/git','--git-dir=/home/pi/petbot/.git/','log','-n','1'])
 	try:
@@ -299,6 +308,7 @@ def connect(host, port):
 	#selfie methods
 	device.register_function(set_selfie_status)
 	device.register_function(get_selfie_status)
+	device.register_function(toggle_selfie)
 	
 
 	device.register_function(ping)
