@@ -20,5 +20,5 @@ do
 	else
 		no_ping=0
 	fi
-	sleep 5
+	sleep 15
 done
