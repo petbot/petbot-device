@@ -243,6 +243,7 @@ def sendCookie():
 		return False
 
 	logging.debug('sendCookie - sent')
+	subprocess.Popen(['sudo /home/pi/petbot/led/led 4 blink 6'],shell=True)
 	sendCookie.process = subprocess.Popen(['/home/pi/petbot/single_cookie/single_cookie', '10'])
 	return True	
 
@@ -359,6 +360,7 @@ if __name__ == '__main__':
 	#logging.basicConfig(filename = "petbot.log", level = logging.DEBUG, format = '%(asctime)s\t%(levelname)s\t%(module)s\t%(funcName)\t%(message)s')
 
 	subprocess.Popen(['sudo /home/pi/petbot/led/led 6 on 0'],shell=True) # turn on LED
+	subprocess.Popen(['sudo /home/pi/petbot/led/led 4 on 0'],shell=True)
 
 	#start timer
 	t_reset[0]=10
