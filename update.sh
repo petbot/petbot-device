@@ -25,7 +25,7 @@ fi
 
 sudo rm -rf /home/pi/petbot
 mv -T /home/pi/petbot-device-master /home/pi/petbot
-
+sh /home/pi/petbot/post_update.sh
 
 
 
