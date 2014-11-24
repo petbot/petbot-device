@@ -400,7 +400,9 @@ if __name__ == '__main__':
 	#logging.basicConfig(filename = "petbot.log", level = logging.DEBUG, format = '%(asctime)s\t%(levelname)s\t%(module)s\t%(funcName)\t%(message)s')
 
 	subprocess.Popen(['sudo /home/pi/petbot/led/led 6 on 0'],shell=True) # turn on LED
-	subprocess.Popen(['sudo /home/pi/petbot/led/led 4 on 0'],shell=True)
+	get_led_status()
+	if ping.enable_led_auto: 
+		subprocess.Popen(['sudo /home/pi/petbot/led/led 4 on 0'],shell=True)
 
 	#start timer
 	t_reset[0]=10
