@@ -24,6 +24,7 @@ t_count=[0]
 #enable_pet_selfie=True
 
 pet_selfie_filename="/home/pi/petselfie_enabled"
+led_auto_filename="/home/pi/led_always"
 
 #pet_selfie_cmd='sudo /usr/bin/nice -n 19 /home/pi/petbot-selfie/src/atos /home/pi/cnn-networks/ccv2012.ntwk -2 /home/pi/cnn-networks/model_2012_l2_p5p50_n4 /dev/shm/out'
 pet_selfie_cmd='sudo /usr/bin/nice -n 19 /home/pi/petbot-selfie/src/atos /home/pi/cnn-networks/petnet.ntwk 0 /dev/shm/out'
@@ -61,6 +62,7 @@ def report_log(ip,port):
 		return (True,"")
 	return (False,"")
 
+###selfie functions######
 def get_selfie_status():
 	print >> sys.stderr,"Got request for selfie status"
 	ping.enable_pet_selfie=os.path.isfile(pet_selfie_filename)
@@ -80,6 +82,34 @@ def toggle_selfie():
 	print "toggle selfie", enabled
 	set_selfie_status(not enabled)
 	return (True,get_selfie_status()[1])
+
+####LED toggle functions########
+def get_led_status():
+	print >> sys.stderr,"Got request for led status"
+	ping.enable_led_auto=os.path.isfile(led_auto_filename)
+	return (True, ping.enable_led_auto)
+
+def set_led_status(enabled):
+	if enabled:
+		open(led_auto_filename, 'a').close()
+	else:
+		if os.path.isfile(led_auto_filename):
+			os.remove(led_auto_filename)
+	print "got request to set to ", enabled, " now is ", get_led_status()
+	return (True,get_led_status()[1])
+
+def toggle_led():
+	enabled=get_led_status()[1]
+	if enabled:
+		subprocess.Popen(['sudo /home/pi/petbot/led/led 6 on 0'],shell=True) # turn on LED
+		subprocess.Popen(['sudo /home/pi/petbot/led/led 4 on 0'],shell=True) # turn on LED
+	else:
+		subprocess.Popen(['sudo /home/pi/petbot/led/led 6 off 0'],shell=True) # turn off LED
+		subprocess.Popen(['sudo /home/pi/petbot/led/led 4 off 0'],shell=True) # turn off LED
+	print "toggle led", enabled
+	set_led_status(not enabled)
+	return (True,get_led_status()[1])
+
 
 def get_volume():
 	print "GETTING SOUND"
@@ -181,7 +211,13 @@ def check_ping():
 			os._exit(1)
 			#sys.exit(1)
 		else:
-			subprocess.Popen(['sudo /home/pi/petbot/led/led 6 on 0'],shell=True) # turn on LED
+			if ping.enable_led_auto:
+				subprocess.Popen(['sudo /home/pi/petbot/led/led 6 on 0'],shell=True) # turn on LED
+				subprocess.Popen(['sudo /home/pi/petbot/led/led 4 on 0'],shell=True) # turn on LED
+			else:
+				subprocess.Popen(['sudo /home/pi/petbot/led/led 6 off 0'],shell=True) # turn off LED
+				subprocess.Popen(['sudo /home/pi/petbot/led/led 4 off 0'],shell=True) # turn off LED
+				
 			if c[0]>100:
 				logging.debug('all is well ' + str(ct) + " " +str(last_ping[0]))
 				c[0]=0
@@ -310,6 +346,10 @@ def connect(host, port):
 	device.register_function(set_selfie_status)
 	device.register_function(get_selfie_status)
 	device.register_function(toggle_selfie)
+	#led methods
+	device.register_function(set_led_status)
+	device.register_function(get_led_status)
+	device.register_function(toggle_led)
 	
 
 	device.register_function(ping)
