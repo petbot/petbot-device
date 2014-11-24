@@ -1,5 +1,9 @@
 #!/bin/bash
 
+if [ "$1" = "stop" ]; then
+	exit
+fi
+
 ping_host=petbot.ca
 
 no_ping=0
