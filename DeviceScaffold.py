@@ -370,7 +370,7 @@ def connect(host, port):
 	#connect
 	logging.info("Listening for commands from server.")
 	last_ping[0]=time.time()
-	asyncore.loop(timeout=1)
+	asyncore.loop(timeout=10)
 	logging.warning('Disconnected from command server')
 
 pi_server="127.0.0.1"
