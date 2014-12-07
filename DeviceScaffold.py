@@ -235,7 +235,7 @@ def ping():
 		not_streaming[0]=0
 	else:
 		not_streaming[0]+=1
-		if ping.enable_pet_selfie and not_streaming[0]>4:
+		if ping.enable_pet_selfie and not_streaming[0]>15:
 			if ping.selfie==None:
 				ping.selfie=subprocess.Popen(pet_selfie_cmd,stdin=subprocess.PIPE,stdout=subprocess.PIPE,shell=True)
 				print >> ping.selfie.stdin, "GO"
