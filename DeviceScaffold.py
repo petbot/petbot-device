@@ -415,10 +415,10 @@ if __name__ == '__main__':
 	t.start()
 	#start petselfie
 	get_selfie_status()
-	if ping.enable_pet_selfie:
-		ping.selfie=subprocess.Popen(pet_selfie_cmd,stdin=subprocess.PIPE,stdout=subprocess.PIPE,shell=True)
-		print >> ping.selfie.stdin, "GO"
-		ping.state="GO"
+	#if ping.enable_pet_selfie:
+	#	ping.selfie=subprocess.Popen(pet_selfie_cmd,stdin=subprocess.PIPE,stdout=subprocess.PIPE,shell=True)
+	#	print >> ping.selfie.stdin, "GO"
+	#	ping.state="GO"
 	while True:
 		for x in range(10):
 			try:
