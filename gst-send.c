@@ -248,7 +248,7 @@ void * run(void * v) {
 				//    "duplicate", &duplicated, NULL);
 				guint64 out;
 				g_object_get (videorate, "out", &out, NULL);
-				if (out-last_out<10) {
+				if (out-last_out<2) {
 					//fprintf(stderr,"%"G_GUINT64_FORMAT" %"G_GUINT64_FORMAT" %"G_GUINT64_FORMAT" %"G_GUINT64_FORMAT"\n",in,out,dropped,duplicated);
 					fprintf(stderr,"Frames out are low! %"G_GUINT64_FORMAT"\n",out);
 					status=GST_DIED;
