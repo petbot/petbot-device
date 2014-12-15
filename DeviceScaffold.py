@@ -18,6 +18,8 @@ import RPi.GPIO as GPIO
 #from gevent import monkey
 #monkey.patch_all()
 
+os.environ['LD_LIBRARY_PATH'] = '/usr/local/lib/'
+
 t_reset=[0]
 t_count=[0]
 
@@ -235,7 +237,7 @@ def ping():
 		not_streaming[0]=0
 	else:
 		not_streaming[0]+=1
-		if ping.enable_pet_selfie and not_streaming[0]>15:
+		if ping.enable_pet_selfie and not_streaming[0]>4:
 			if ping.selfie==None:
 				ping.selfie=subprocess.Popen(pet_selfie_cmd,stdin=subprocess.PIPE,stdout=subprocess.PIPE,shell=True)
 				print >> ping.selfie.stdin, "GO"
@@ -370,7 +372,7 @@ def connect(host, port):
 	#connect
 	logging.info("Listening for commands from server.")
 	last_ping[0]=time.time()
-	asyncore.loop(timeout=10)
+	asyncore.loop(timeout=1)
 	logging.warning('Disconnected from command server')
 
 pi_server="127.0.0.1"
@@ -415,10 +417,10 @@ if __name__ == '__main__':
 	t.start()
 	#start petselfie
 	get_selfie_status()
-	#if ping.enable_pet_selfie:
-	#	ping.selfie=subprocess.Popen(pet_selfie_cmd,stdin=subprocess.PIPE,stdout=subprocess.PIPE,shell=True)
-	#	print >> ping.selfie.stdin, "GO"
-	#	ping.state="GO"
+	if ping.enable_pet_selfie:
+		ping.selfie=subprocess.Popen(pet_selfie_cmd,stdin=subprocess.PIPE,stdout=subprocess.PIPE,shell=True)
+		print >> ping.selfie.stdin, "GO"
+		ping.state="GO"
 	while True:
 		for x in range(10):
 			try:
