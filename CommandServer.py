@@ -119,6 +119,7 @@ class Worker():
 		self.do_work_loop()
 	
 	def spawn(self):
+		print "SPAWN"
 		t=threading.Thread(target=connect, args=(self.host, self.port, self.name, self.functions_raw,))
 		#add_thread(t) #check for timeout and return?
 		t.daemon=True
