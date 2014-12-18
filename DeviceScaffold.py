@@ -248,7 +248,7 @@ class PetBotClient:
 	def ping(self):
 		print "PING!",self.not_streaming
 		self.last_ping=time.time()
-		if self.streamProcess!=None and self.streamProcess.startS.poll()==None:
+		if self.streamProcess!=None and self.streamProcess.poll()==None:
 			self.not_streaming=0
 		else:
 			self.not_streaming+=1
