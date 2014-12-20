@@ -149,7 +149,7 @@ void * run(void * v) {
 	//g_object_set( G_OBJECT(omxh264enc), "target-bitrate", target_bitrate, "control-rate", OMX_Video_ControlRateVariableSkipFrames, NULL);
 	g_object_set( G_OBJECT(omxh264enc), "target-bitrate", target_bitrate, "control-rate", OMX_Video_ControlRateVariable, NULL);
 	//g_object_set( G_OBJECT(omxh264enc), "target-bitrate", target_bitrate, "control-rate", OMX_Video_ControlRateConstantSkipFrames, NULL);
-	g_object_set( G_OBJECT(rtph264pay), "pt", 96, "config-interval",1,NULL);
+	g_object_set( G_OBJECT(rtph264pay), "pt", 96, "config-interval",1,"send-config", TRUE,NULL);
 	fprintf(stderr, "IP %s udp_port %d target_bit %d\n",ip,udp_port,target_bitrate);
 	g_object_set( G_OBJECT(udpsink), "host", ip, "port", udp_port, "sync",FALSE, "async", FALSE, NULL);
 	g_object_set( G_OBJECT(queue), "max-size-buffers", 0, NULL);
