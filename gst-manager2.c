@@ -36,6 +36,9 @@
 
 #include "codes.h"
 
+
+guint64 bytes_sent;
+
 sem_t tcp_client_mutex;
 char * tcp_server_ip;
 int tcp_server_port;
@@ -165,8 +168,14 @@ void * gst_client(void * not_used ) { //(char * ip, int udp_port, int target_bit
 				fprintf(stderr,"gst_client->read from gst-send\n");
 				//should probably exit or do something based on code
 				read(pfd_from_child[0],&code,sizeof(int)); //TODO shoudl check ret val
-				fprintf(stderr,"gst_client->gst-send sends code %d\n",code);
-				break;
+				if (code==GST_BYTES_SENT) {
+					//bytes_sent=0;
+					read(pfd_from_child[0],&bytes_sent,sizeof(guint64)); //TODO shoudl check ret val
+					fprintf(stderr,"BYTES SENT GOT FROM GST_SEND %"G_GUINT64_FORMAT"\n",bytes_sent);
+				} else {
+					fprintf(stderr,"gst_client->gst-send sends code %d\n",code);
+					break;
+				}
 			} else if (FD_ISSET(pipe_to_gst[0], &rfds)) {
 				fprintf(stderr,"gst_client->read from manager\n");
 				read(pipe_to_gst[0],&code,sizeof(int)); //TODO should check ret val
@@ -238,6 +247,7 @@ void * tcp_client(void * not_used) {
 	sem_post(&tcp_client_mutex);
 
 	char * pong = "pong";
+	char * byte = "byte";
         fd_set rfds;
 	//int retval;
 	while (1>0) {
@@ -270,8 +280,18 @@ void * tcp_client(void * not_used) {
 				return NULL;
 	      		}
 			sleep(1);
-	      		sendto(sockfd,pong,strlen(pong),0,
-		     		(struct sockaddr *)&servaddr,sizeof(servaddr));
+			if (bytes_sent!=0) {
+				fprintf(stderr,"sending byte!\n");
+	      			sendto(sockfd,byte,strlen(byte),0,
+		     			(struct sockaddr *)&servaddr,sizeof(servaddr));
+	      			sendto(sockfd,&bytes_sent,sizeof(guint64),0,
+		     			(struct sockaddr *)&servaddr,sizeof(servaddr));
+				bytes_sent=0;
+			} else {
+				fprintf(stderr,"sending pong!\n");
+	      			sendto(sockfd,pong,strlen(pong),0,
+		     			(struct sockaddr *)&servaddr,sizeof(servaddr));
+			}
 		} else {
 			//timeout, kill TCP ?
 			fprintf(stderr, "tcp timeout\n");
@@ -348,7 +368,7 @@ int main(int argc, char *argv[]) {
 	exit(1);
   }
 
-
+	bytes_sent=0;
   gst_udp_port=0;
   tcp_server_ip=argv[1];
   gst_server_ip=tcp_server_ip; //TODO make variable from server?

@@ -46,6 +46,22 @@ class PetBotClient:
 		self.t=Timer(1.0,self.check_ping)
 		self.t.start()
 		self.state=True
+		self.config={}
+
+
+	def get_config(self):
+		#selfie info
+		_, selfie_status = self.get_selfie_status()
+		self.config['selfie_status']=selfie_status
+		#version info
+		_, version = self.version()
+		self.config['version']=version	
+		#id
+		self.config['id']=self.deviceID()		
+		#volume
+		_, volume = self.get_volume()
+		self.config['volume']=volume
+		return (True,self.config)
 
 	def stop(self):
 		self.state=False
@@ -340,6 +356,7 @@ class PetBotClient:
 		logging.info('Registering device functions.')
 		#petbot id
 		self.device.register_function(self.deviceID)
+		self.device.register_function(self.get_config)
 
 		#wifi methods
 		self.device.register_function(getWifiNetworks)

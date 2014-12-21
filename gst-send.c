@@ -152,6 +152,7 @@ void * run(void * v) {
 	g_object_set( G_OBJECT(rtph264pay), "pt", 96, "config-interval",1,"send-config", TRUE,NULL);
 	fprintf(stderr, "IP %s udp_port %d target_bit %d\n",ip,udp_port,target_bitrate);
 	g_object_set( G_OBJECT(udpsink), "host", ip, "port", udp_port, "sync",FALSE, "async", FALSE, NULL);
+	//g_object_set( G_OBJECT(udpsink), "host", ip, "port", udp_port, "async", FALSE, NULL);
 	g_object_set( G_OBJECT(queue), "max-size-buffers", 0, NULL);
 	g_object_set( G_OBJECT(videorate), "drop-only", TRUE, NULL);  
 
@@ -186,7 +187,7 @@ void * run(void * v) {
 	while (go_on>=0) {
 		msg = gst_bus_timed_pop_filtered (bus, GST_SECOND/2, GST_MESSAGE_ANY | GST_MESSAGE_STREAM_START | GST_MESSAGE_ASYNC_DONE | GST_MESSAGE_ERROR | GST_MESSAGE_EOS);
 		if (msg != NULL) {
-			//fprintf(stderr, "Got a messsage , %d , %s\n", GST_MESSAGE_TYPE (msg), GST_MESSAGE_TYPE_NAME(msg));
+			fprintf(stderr, "Got a messsage , %d , %s\n", GST_MESSAGE_TYPE (msg), GST_MESSAGE_TYPE_NAME(msg));
 			GError *err;
 			gchar *debug_info;
 			  
@@ -243,6 +244,13 @@ void * run(void * v) {
 				go_on-=1;
 			}
 			if (i++==8) {
+				guint64 bytes_out;
+				g_object_get (udpsink, "bytes-served", &bytes_out, NULL);
+				int code=GST_BYTES_SENT;
+				write(1,&code,sizeof(int));
+				write(1,&bytes_out,sizeof(guint64));
+				
+				fprintf(stderr,"BYTES_SERVED %"G_GUINT64_FORMAT"\n", bytes_out);
 				//lets see how many frames have been processed
 				//g_object_get (videorate, "in", &in, "out", &out, "drop", &dropped,
 				//    "duplicate", &duplicated, NULL);

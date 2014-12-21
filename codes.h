@@ -7,5 +7,7 @@
 #define KILL_GST	(1<<5)
 #define TCP_DIED	(1<<6)
 #define GST_DIED	(1<<7)
+#define GST_BYTES_SENT	(1<<8)
+
 
 #endif
