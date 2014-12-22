@@ -45,6 +45,7 @@ class PetBotClient:
 		self.enable_led_auto=None
 		self.t=Timer(1.0,self.check_ping)
 		self.t.start()
+		self.check_wifi()
 		self.state=True
 		self.config={}
 		self.start_time=time.time()
@@ -218,6 +219,11 @@ class PetBotClient:
 
 		raise Exception('Could not find device ID')
 		return id_generator()
+
+	def check_wifi(self):
+		subprocess.Popen(['sudo /sbin/iwconfig wlan0 power off'],shell=True)
+		t=Timer(20.0,self.check_wifi)
+		t.start()
 
 	def check_ping(self):
 		if self.last_ping!=-1:
