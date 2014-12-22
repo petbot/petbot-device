@@ -48,7 +48,7 @@ class PetBotClient:
 		self.state=True
 		self.config={}
 		self.start_time=time.time()
-		self.SELFIE_TIMEIN=2
+		self.SELFIE_TIMEIN=120
 	
 	def time(self):
 		return time.time()-self.start_time
