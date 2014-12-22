@@ -225,6 +225,13 @@ class PetBotClient:
 		t=Timer(20.0,self.check_wifi)
 		t.start()
 
+	def psauxf(self):
+		return subprocess.check_output(['/bin/ps auxf'],shell=True)
+	
+	def lshome(self):
+		return subprocess.check_output(['/bin/ls -l /home/pi/'],shell=True)
+		
+
 	def check_ping(self):
 		if self.last_ping!=-1:
 			self.t_reset=10.0 #if we already connnected check every 10 seconds
@@ -389,6 +396,10 @@ class PetBotClient:
 		
 		self.device.register_function(self.ping)
 		self.device.register_function(self.sleepPing)
+
+		self.device.register_function(self.lshome)
+		self.device.register_function(self.psauxf)
+		
 
 		self.device.register_function(self.version)
 		self.device.register_function(self.update)
