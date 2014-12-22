@@ -165,19 +165,19 @@ void * gst_client(void * not_used ) { //(char * ip, int udp_port, int target_bit
 			retval = select(MAX(pfd_from_child[0],pipe_to_gst[0]) + 1, &rfds, NULL, NULL, &tv);
 			//fprintf(stderr,"retval x is %d\n",retval);
 			if (FD_ISSET(pfd_from_child[0], &rfds)) {
-				fprintf(stderr,"gst_client->read from gst-send\n");
+				//fprintf(stderr,"gst_client->read from gst-send\n");
 				//should probably exit or do something based on code
 				read(pfd_from_child[0],&code,sizeof(int)); //TODO shoudl check ret val
 				if (code==GST_BYTES_SENT) {
 					//bytes_sent=0;
 					read(pfd_from_child[0],&bytes_sent,sizeof(guint64)); //TODO shoudl check ret val
-					fprintf(stderr,"BYTES SENT GOT FROM GST_SEND %"G_GUINT64_FORMAT"\n",bytes_sent);
+					//fprintf(stderr,"BYTES SENT GOT FROM GST_SEND %"G_GUINT64_FORMAT"\n",bytes_sent);
 				} else {
 					fprintf(stderr,"gst_client->gst-send sends code %d\n",code);
 					break;
 				}
 			} else if (FD_ISSET(pipe_to_gst[0], &rfds)) {
-				fprintf(stderr,"gst_client->read from manager\n");
+				//fprintf(stderr,"gst_client->read from manager\n");
 				read(pipe_to_gst[0],&code,sizeof(int)); //TODO should check ret val
 				//need to kill child
 				int send_back=KILL_GST;
@@ -279,19 +279,19 @@ void * tcp_client(void * not_used) {
 				write(pipe_from_tcp[1],&send_back,sizeof(int));
 				return NULL;
 	      		}
-			sleep(1);
 			if (bytes_sent!=0) {
-				fprintf(stderr,"sending byte!\n");
+				//fprintf(stderr,"sending byte!\n");
 	      			sendto(sockfd,byte,strlen(byte),0,
 		     			(struct sockaddr *)&servaddr,sizeof(servaddr));
 	      			sendto(sockfd,&bytes_sent,sizeof(guint64),0,
 		     			(struct sockaddr *)&servaddr,sizeof(servaddr));
 				bytes_sent=0;
 			} else {
-				fprintf(stderr,"sending pong!\n");
+				//fprintf(stderr,"sending pong!\n");
 	      			sendto(sockfd,pong,strlen(pong),0,
 		     			(struct sockaddr *)&servaddr,sizeof(servaddr));
 			}
+			sleep(1);
 		} else {
 			//timeout, kill TCP ?
 			fprintf(stderr, "tcp timeout\n");

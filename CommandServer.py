@@ -81,7 +81,7 @@ class Worker():
 		return self.r
 
 	def do_work(self):
-		print "doing work", threading.current_thread()
+		#print "doing work", threading.current_thread()
 		if self.get_req()==None:	
 			print "Failed in mid request"
 			return
@@ -93,7 +93,7 @@ class Worker():
 		self.sock.send(message)
 		#self.sock.send(len(command_response))
 		#self.sock.send(command_response)
-		print "done work", threading.current_thread(),f
+		#print "done work", threading.current_thread(),f
 	
 	def do_work_loop(self):
 		self.do_work()
@@ -101,15 +101,15 @@ class Worker():
 			if self.get_len()==0:
 				break
 			self.do_work()
-		print "thread dying", threading.current_thread()
+		#print "thread dying", threading.current_thread()
 	
 	def block_for_work(self):
 		if self.get_len()==0:
-			print "thread dying", threading.current_thread()
+			#print "thread dying", threading.current_thread()
 			return
 		self.do_work() #shoudl be call for deviceID
 		if self.get_len()==0:
-			print "thread dying", threading.current_thread()
+			#print "thread dying", threading.current_thread()
 			return
 		#self.do_work_loop()
 		#t=threading.Thread(target=connect, args=(self.host, self.port, self.name, self.functions_raw,))
@@ -119,7 +119,7 @@ class Worker():
 		self.do_work_loop()
 	
 	def spawn(self):
-		print "SPAWN"
+		#print "SPAWN"
 		t=threading.Thread(target=connect, args=(self.host, self.port, self.name, self.functions_raw,))
 		#add_thread(t) #check for timeout and return?
 		t.daemon=True
@@ -146,7 +146,7 @@ class DeviceListener:
 		#ws=[]
 		errors=0
 		while True:
-			print "DOING STUFF"
+			#print "DOING STUFF"
 			if not pbc.state:
 				print "SHUTDOWN"
 				return

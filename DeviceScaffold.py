@@ -47,7 +47,7 @@ class PetBotClient:
 		self.t.start()
 		self.state=True
 		self.config={}
-
+		self.SELFIE_TIMEIN=120
 
 	def get_config(self):
 		#selfie info
@@ -262,14 +262,15 @@ class PetBotClient:
 		t.start()
 
 	def ping(self):
-		print "PING!",self.not_streaming
+		print "PING!",self.not_streaming," ", time.time()
 		self.last_ping=time.time()
 		if self.streamProcess!=None and self.streamProcess.poll()==None:
-			self.not_streaming=0
+			self.not_streaming=time.time()
 		else:
-			self.not_streaming+=1
-			if self.enable_pet_selfie and self.not_streaming>4:
-				if self.selfieProcess==None:
+			#self.not_streaming+=1
+			if self.enable_pet_selfie and time.time()-self.not_streaming>self.SELFIE_TIMEIN:
+				if self.selfieProcess==None or self.selfieProcess.poll()!=None: #not started or dead
+					print "Starting selfie process!"
 					self.selfieProcess=subprocess.Popen(self.pet_selfie_cmd,stdin=subprocess.PIPE,stdout=subprocess.PIPE,shell=True)
 					print >> self.selfieProcess.stdin, "GO"
 					self.state="GO"
