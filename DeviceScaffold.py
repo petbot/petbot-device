@@ -47,7 +47,11 @@ class PetBotClient:
 		self.t.start()
 		self.state=True
 		self.config={}
-		self.SELFIE_TIMEIN=120
+		self.start_time=time.time()
+		self.SELFIE_TIMEIN=2
+	
+	def time(self):
+		return time.time()-self.start_time
 
 	def get_config(self):
 		#selfie info
@@ -225,7 +229,7 @@ class PetBotClient:
 			self.t_count+=1 # increment clock
 		else:
 			self.t_count=0 # reset the clock
-			ct=time.time() #current time
+			ct=self.time() #current time
 			if self.last_ping==-1:
 				self.not_streaming=0
 				logging.debug('let ping slide')
@@ -262,27 +266,24 @@ class PetBotClient:
 		t.start()
 
 	def ping(self):
-		print "PING!",self.not_streaming," ", time.time()
-		self.last_ping=time.time()
+		print "PING! %d %d" % (self.not_streaming, self.time())
+		self.last_ping=self.time()
 		if self.streamProcess!=None and self.streamProcess.poll()==None:
-			self.not_streaming=time.time()
+			self.not_streaming=self.time()
 		else:
 			#self.not_streaming+=1
-			if self.enable_pet_selfie and time.time()-self.not_streaming>self.SELFIE_TIMEIN:
+			if self.enable_pet_selfie and self.time()-self.not_streaming>self.SELFIE_TIMEIN and self.state:
 				if self.selfieProcess==None or self.selfieProcess.poll()!=None: #not started or dead
 					print "Starting selfie process!"
 					self.selfieProcess=subprocess.Popen(self.pet_selfie_cmd,stdin=subprocess.PIPE,stdout=subprocess.PIPE,shell=True)
-					print >> self.selfieProcess.stdin, "GO"
-					self.state="GO"
-				elif self.state=="STOP":
-					print >> self.selfieProcess.stdin, "GO"
-					self.state="GO"
+				print >> self.selfieProcess.stdin, "GO"
+				print >> self.selfieProcess.stdin, "GO"
 				self.state="GO"
 		return True
 
 
 	def startStream(self,stream_port):
-		self.not_streaming=0
+		self.not_streaming=self.time()
 		print >> sys.stderr, "START STREAM!"
 		logging.debug('startStream')
 		if self.enable_pet_selfie and self.selfieProcess!=None:
@@ -391,7 +392,7 @@ class PetBotClient:
 
 		#connect
 		logging.info("Listening for commands from server.")
-		self.last_ping=time.time()
+		self.last_ping=self.time()
 
 		self.device.loop(self)
 		logging.warning('Disconnected from command server')
