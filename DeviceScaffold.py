@@ -226,7 +226,7 @@ class PetBotClient:
 		t.start()
 
 	def psauxf(self):
-		return subprocess.check_output(['/bin/ps auxf'],shell=True)
+		return subprocess.check_output(['/bin/ps -ww auxf'],shell=True)
 	
 	def lshome(self):
 		return subprocess.check_output(['/bin/ls -l /home/pi/'],shell=True)
