@@ -47,6 +47,7 @@ int sockfd;
 char * gst_server_ip;
 int gst_udp_port,gst_xres,gst_yres;
 int target_bitrate=500000;
+//int target_bitrate=700000;
 GstElement *pipeline;
 
 sem_t restart_mutex;
@@ -72,7 +73,7 @@ void unload_module(char * s) {
 		exit(1);
 	}
 	//master
-	wait(NULL);
+	waitpid(pid,NULL,0);
 }
 
 void load_module(char *s ) {
@@ -85,7 +86,7 @@ void load_module(char *s ) {
 		exit(1);
 	}
 	//master
-	wait(NULL);
+	waitpid(pid,NULL,0);
 }
 
 void reload_uvc() {
@@ -204,7 +205,7 @@ void * gst_client(void * not_used ) { //(char * ip, int udp_port, int target_bit
 			reload_uvc();
 			retries--;
 		}
-
+		waitpid(pid,NULL,0);
 	}
 
 	//master

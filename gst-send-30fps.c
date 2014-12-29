@@ -45,9 +45,9 @@ void ret_run() {
 }
 
 void * run(void * v) {
-	GstCaps *capture_caps, *h264_caps;
+	GstCaps *capture_caps, *converted_caps,*h264_caps;
 
-	GstElement *pipeline, *v4l2src, *videorate, *queue, *videoconvert, *omxh264enc, *rtph264pay, *udpsink, *queue2;
+	GstElement *pipeline, *v4l2src, *videorate, *queue, *videoconvert, *omxh264enc, *rtph264pay, *udpsink;
 	GstBus *bus;
 	GstMessage *msg;
 	GstStateChangeReturn ret;
@@ -57,23 +57,23 @@ void * run(void * v) {
 	/* Create the elements */
 	//sprintf(buffer,"v4l2src ! video/x-raw, xres=%d, yres=%d, framerate=30/1 ! videorate !  video/x-raw,framerate=15/1 ! queue ! videoconvert ! omxh264enc target-bitrate=%d control-rate=variable ! rtph264pay pt=96 config-interval=3 ! udpsink host=%s port=%d", xres, yres, target_bitrate, ip, udp_port); 
 	v4l2src = gst_element_factory_make ("v4l2src", "camsrc");
+	videorate = gst_element_factory_make ("videorate", "videorate");
+	queue = gst_element_factory_make ("queue","queue");
 	videoconvert = gst_element_factory_make ("videoconvert","videoconvert");
 	omxh264enc = gst_element_factory_make ("omxh264enc","omxh264enc");
-	queue = gst_element_factory_make ("queue", "queue");
-	queue2 = gst_element_factory_make ("queue", "queue2");
 	rtph264pay = gst_element_factory_make ("rtph264pay", "rtph264pay");
 	udpsink = gst_element_factory_make ("udpsink", "udpsink");
 
 	/* Create the caps filters */
 	capture_caps = gst_caps_new_simple("video/x-raw","xres", G_TYPE_INT, xres, "yres", G_TYPE_INT, yres, "framerate", GST_TYPE_FRACTION, 30, 1, NULL);
-	//converted_caps = gst_caps_new_simple("video/x-raw","xres", G_TYPE_INT, xres, "yres", G_TYPE_INT, yres, "framerate", GST_TYPE_FRACTION, 30, 1, NULL);
+	converted_caps = gst_caps_new_simple("video/x-raw","xres", G_TYPE_INT, xres, "yres", G_TYPE_INT, yres, "framerate", GST_TYPE_FRACTION, 5, 1, NULL);
 	h264_caps = gst_caps_new_simple("video/x-h264","profile", G_TYPE_STRING,"baseline",NULL);
 
 
 	/* Create the empty pipeline */
 	pipeline = gst_pipeline_new ("send-pipeline");
 	 
-	if (!pipeline || !v4l2src || !videoconvert || !queue || !queue2 || !omxh264enc || !rtph264pay || !udpsink) {
+	if (!pipeline || !v4l2src || !videorate || !queue || !videoconvert || !omxh264enc || !rtph264pay || !udpsink) {
 	  g_printerr ("Not all elements could be created.\n");
 	  ret_run();
 	  status=GST_DIED;
@@ -82,10 +82,10 @@ void * run(void * v) {
 	}
 
 	/* Build the pipeline */
-	gst_bin_add_many (GST_BIN (pipeline), v4l2src, queue2, videoconvert, omxh264enc, queue, rtph264pay, udpsink,  NULL);
+	gst_bin_add_many (GST_BIN (pipeline), v4l2src, videorate, queue, videoconvert, omxh264enc, rtph264pay, udpsink,  NULL);
 	fprintf(stderr, "Linking pipeline..\n");
 	/* Link the eleemnts */
-	if (gst_element_link_filtered(v4l2src , queue2, capture_caps) !=TRUE ) {
+	if (gst_element_link_filtered(v4l2src , videorate, capture_caps) !=TRUE ) {
 	  g_printerr ("Could not connect v4l2src to videorate.\n");
 	  gst_object_unref (pipeline);
 	  ret_run();
@@ -93,8 +93,8 @@ void * run(void * v) {
 	  sem_post(&gst_off);
 	  return NULL;
 	} 
-	if (gst_element_link(queue2 , omxh264enc) !=TRUE ) {
-	  g_printerr ("Could not connect v4l2src to videorate.\n");
+	if (gst_element_link_filtered(videorate , queue, converted_caps) !=TRUE ) {
+	  g_printerr ("Could not connect videorate to queue.\n");
 	  gst_object_unref (pipeline);
 	  ret_run();
 	  status=GST_DIED;
@@ -117,24 +117,16 @@ void * run(void * v) {
 	  sem_post(&gst_off);
 	  return NULL;
 	} */
-	/*if (gst_element_link(queue , omxh264enc ) !=TRUE ) {
+	if (gst_element_link(queue , omxh264enc ) !=TRUE ) {
 	  g_printerr ("Could not connect videoconvert to omxh264enc.\n");
 	  gst_object_unref (pipeline);
 	  ret_run();
 	  status=GST_DIED;
 	  sem_post(&gst_off);
 	  return NULL;
-	} */
-	//if (gst_element_link(omxh264enc , rtph264pay ) !=TRUE ) {
-	if (gst_element_link(omxh264enc , queue ) !=TRUE ) {
-	  g_printerr ("Could not connect omxh264enc to rtph264pay.\n");
-	  gst_object_unref (pipeline);
-	  ret_run();
-	  status=GST_DIED;
-	  sem_post(&gst_off);
-	  return NULL;
 	} 
-	if (gst_element_link_filtered(queue , rtph264pay, h264_caps ) !=TRUE ) {
+	//if (gst_element_link(omxh264enc , rtph264pay ) !=TRUE ) {
+	if (gst_element_link_filtered(omxh264enc , rtph264pay, h264_caps ) !=TRUE ) {
 	  g_printerr ("Could not connect omxh264enc to rtph264pay.\n");
 	  gst_object_unref (pipeline);
 	  ret_run();
@@ -153,19 +145,16 @@ void * run(void * v) {
 
 	/* set properties */
 	//gst_base_src_set_live (GST_BASE_SRC (v4l2src), TRUE);
-	//g_object_set( G_OBJECT(v4l2src) , "do-timestamp", TRUE, "io-mode",1,NULL);
-	//g_object_set( G_OBJECT(v4l2src) , "do-timestamp", FALSE, "io-mode",1,NULL);
-	//g_object_set( G_OBJECT(v4l2src) , "do-timestamp", FALSE, "io-mode",2,"always-copy",FALSE,NULL);
-	g_object_set( G_OBJECT(v4l2src) , "do-timestamp", FALSE, "io-mode",1,"queue-size",6,NULL);
+	g_object_set( G_OBJECT(v4l2src) , "do-timestamp", TRUE, "io-mode",1,NULL);
 	//g_object_set( G_OBJECT(omxh264enc), "target-bitrate", target_bitrate, "control-rate", OMX_Video_ControlRateVariableSkipFrames, NULL);
 	g_object_set( G_OBJECT(omxh264enc), "target-bitrate", target_bitrate, "control-rate", OMX_Video_ControlRateVariable, NULL);
 	//g_object_set( G_OBJECT(omxh264enc), "target-bitrate", target_bitrate, "control-rate", OMX_Video_ControlRateConstantSkipFrames, NULL);
 	g_object_set( G_OBJECT(rtph264pay), "pt", 96, "config-interval",1,"send-config", TRUE,NULL);
 	fprintf(stderr, "IP %s udp_port %d target_bit %d\n",ip,udp_port,target_bitrate);
-	g_object_set( G_OBJECT(udpsink), "host", ip, "port", udp_port, "sync",FALSE, "async", FALSE, "enable-last-sample",FALSE,NULL);
-	//g_object_set( G_OBJECT(udpsink), "host", ip, "port", udp_port, "sync",TRUE, "async", FALSE, NULL);
-	////g_object_set( G_OBJECT(udpsink), "host", ip, "port", udp_port, "async", FALSE, NULL);
-	//g_object_set( G_OBJECT(queue), "max-size-buffers", 0, NULL);
+	g_object_set( G_OBJECT(udpsink), "host", ip, "port", udp_port, "sync",FALSE, "async", FALSE, NULL);
+	//g_object_set( G_OBJECT(udpsink), "host", ip, "port", udp_port, "async", FALSE, NULL);
+	g_object_set( G_OBJECT(queue), "max-size-buffers", 0, NULL);
+	g_object_set( G_OBJECT(videorate), "drop-only", TRUE, NULL);  
 
 	/* Start playing */
 	ret = gst_element_set_state (pipeline, GST_STATE_PLAYING);
@@ -247,10 +236,9 @@ void * run(void * v) {
 			if (shutdown_now==1) {
 				break;
 			}
-			if (stream_status_messages<4) {
+			if (stream_status_messages<6) {
 				if (go_on==0) {
 					status=GST_DIED;
-					fprintf(stderr,"EXITING because lack of msgs\n");
 					break;
 				}
 				go_on-=1;
@@ -266,7 +254,7 @@ void * run(void * v) {
 				//lets see how many frames have been processed
 				//g_object_get (videorate, "in", &in, "out", &out, "drop", &dropped,
 				//    "duplicate", &duplicated, NULL);
-				/*guint64 out;
+				guint64 out;
 				g_object_get (videorate, "out", &out, NULL);
 				if (out-last_out<2) {
 					//fprintf(stderr,"%"G_GUINT64_FORMAT" %"G_GUINT64_FORMAT" %"G_GUINT64_FORMAT" %"G_GUINT64_FORMAT"\n",in,out,dropped,duplicated);
@@ -277,7 +265,7 @@ void * run(void * v) {
 					//fprintf(stderr,"Frames out are %"G_GUINT64_FORMAT"\n",out);
 				}
 				last_out=out;
-				i=0;*/
+				i=0;
 			}
 			//fprintf(stderr,"TIMEOUT2!\n");
 		} 
