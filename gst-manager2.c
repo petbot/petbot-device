@@ -69,6 +69,7 @@ void unload_module(char * s) {
 		char * args[] = { "/usr/bin/sudo","/sbin/rmmod", "-f", s, NULL };
 		int r = execv(args[0],args);
 		fprintf(stderr,"SHOULD NEVER REACH HERE %d\n",r);
+		exit(1);
 	}
 	//master
 	wait(NULL);
@@ -81,6 +82,7 @@ void load_module(char *s ) {
 		char * args[] = { "/usr/bin/sudo", "/sbin/modprobe", s, NULL };
 		int r = execv(args[0],args);
 		fprintf(stderr,"SHOULD NEVER REACH HERE %d\n",r);
+		exit(1);
 	}
 	//master
 	wait(NULL);
@@ -145,6 +147,7 @@ void * gst_client(void * not_used ) { //(char * ip, int udp_port, int target_bit
 			char * args[] = { "/home/pi/petbot/gst-send", s_xres,s_yres,gst_server_ip,s_udp_port, s_bitrate, NULL };
 			int r = execv(args[0],args);
 			fprintf(stderr,"SHOULD NEVER REACH HERE %d\n",r);
+			exit(1);
 		}
 		close(pfd_to_child[0]); //close the write end
 		close(pfd_from_child[1]); //close the write end
