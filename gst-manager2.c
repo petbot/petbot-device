@@ -171,7 +171,11 @@ void * gst_client(void * not_used ) { //(char * ip, int udp_port, int target_bit
 			if (FD_ISSET(pfd_from_child[0], &rfds)) {
 				//fprintf(stderr,"gst_client->read from gst-send\n");
 				//should probably exit or do something based on code
-				read(pfd_from_child[0],&code,sizeof(int)); //TODO shoudl check ret val
+				int r = read(pfd_from_child[0],&code,sizeof(int)); //TODO shoudl check ret val
+				if (r<=0) {
+					fprintf(stderr,"gst_cleitn->gst_send dead!\n");
+					break;
+				}
 				if (code==GST_BYTES_SENT) {
 					//bytes_sent=0;
 					read(pfd_from_child[0],&bytes_sent,sizeof(guint64)); //TODO shoudl check ret val
@@ -328,7 +332,10 @@ void monitor() {
 		if (FD_ISSET(pipe_from_gst[0], &rfds)) {
 			fprintf(stderr,"READING FROM GST!\n");
 			int ret=read(pipe_from_gst[0],&code,sizeof(int));
-			assert(ret==sizeof(int) && code==GST_DIED);
+			if (ret<sizeof(int)) {
+				code=GST_DIED;	
+			}
+			//assert(ret==sizeof(int) && code==GST_DIED);
 			gst_status=0;
 			if (tcp_status==1) {
 				int send_back=KILL_TCP;
@@ -343,8 +350,11 @@ void monitor() {
 		} else if (FD_ISSET(pipe_from_tcp[0],&rfds)) {
 			fprintf(stderr,"READING FROM TCP!\n");
 			int ret=read(pipe_from_tcp[0],&code,sizeof(int));
+			if (ret<=sizeof(int)) {
+				code=TCP_DIED;
+			}
 			tcp_status=0;
-			assert(ret==sizeof(int) && code==TCP_DIED);
+			//assert(ret==sizeof(int) && code==TCP_DIED);
 			if (gst_status==1) {
 				int send_back=KILL_GST;
 				write(pipe_to_gst[1],&send_back,sizeof(int));

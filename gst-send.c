@@ -255,7 +255,7 @@ void * run(void * v) {
 				}
 				go_on-=1;
 			}
-			if (i++==8) {
+			if (i++%8==0) {
 				guint64 bytes_out;
 				g_object_get (udpsink, "bytes-served", &bytes_out, NULL);
 				int code=GST_BYTES_SENT;
