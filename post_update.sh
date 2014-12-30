@@ -13,5 +13,5 @@ if [ $? -ne 0 ] ; then
 	sudo dpkg -i /home/pi/petbot/v4l-utils_1.7.0-3_armhf.deb
 fi
 
-
-sudo rpi-update `cat /home/pi/petbot/kernel`
+sudo cp -f /home/pi/petbot/rt2800usb.conf /etc/modprobe.d/rt2800usb.conf
+#sudo rpi-update `cat /home/pi/petbot/kernel`
