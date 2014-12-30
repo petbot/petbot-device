@@ -15,6 +15,8 @@
 #    You should have received a copy of the GNU General Public License
 #    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 
+cd /
+
 wget -N https://github.com/petbot/petbot-device/archive/master.zip -P /tmp
 
 unzip -o /tmp/master.zip -d /home/pi
