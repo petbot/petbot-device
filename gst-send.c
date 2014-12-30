@@ -247,7 +247,7 @@ void * run(void * v) {
 			if (shutdown_now==1) {
 				break;
 			}
-			if (stream_status_messages<4) {
+			if (stream_status_messages<8) {
 				if (go_on==0) {
 					status=GST_DIED;
 					fprintf(stderr,"EXITING because lack of msgs\n");

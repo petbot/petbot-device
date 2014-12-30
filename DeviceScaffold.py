@@ -409,7 +409,7 @@ class PetBotClient:
 
 		#connect
 		logging.info("Listening for commands from server.")
-		self.last_ping=self.time()
+		#self.last_ping=self.time()
 
 		self.device.loop(self)
 		logging.warning('Disconnected from command server')
