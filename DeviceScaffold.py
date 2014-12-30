@@ -72,6 +72,9 @@ class PetBotClient:
 		self.state=False
 
 
+	def start(self):
+		self.state=True
+
 	def id_generator(self,size = 6, chars = string.ascii_uppercase + string.digits):
 		return "UPB_"+''.join(random.choice(chars) for _ in range(size))
 
@@ -171,6 +174,19 @@ class PetBotClient:
 		c=float(o[2].split('=')[1])
 		return (True,int(100*(c-mn)/(mx-mn)))
 	
+	def remote(self,c):
+		logging.debug('reboot')
+		self.update_lock.acquire()
+		try:
+			c_info = subprocess.check_output(c,shell=True)
+		except Exception, err:
+			print str(err)
+			self.update_lock.release()
+			return (False, "Failed to command")
+		#dont release lock doing reboot!
+		self.update_lock.release()
+		return (True, c_info)
+	
 	def reboot(self):
 		logging.debug('reboot')
 		self.update_lock.acquire()
@@ -249,7 +265,7 @@ class PetBotClient:
 				#call blink here
 				subprocess.Popen(['sudo /home/pi/petbot/led/led 6 blink 3'],shell=True)
 				#timer p
-			elif (ct-self.last_ping)>20:
+			elif (ct-self.last_ping)>10:
 				logging.debug('last ping was too long ago')
 				if self.enable_pet_selfie and self.selfieProcess!=None:
 					print "SENDING EXIT"
@@ -258,6 +274,10 @@ class PetBotClient:
 					self.selfieProcess.stdout.readline()
 					#ping.state="STOP"
 				print "last ping to long ago"
+				subprocess.Popen(['sudo /home/pi/petbot/led/led 6 blink 3'],shell=True)
+				if (ct-self.last_ping)>20:
+					print "STOPING because last ping too long"
+					self.stop()
 				#os._exit(1)
 				#sys.exit(1)
 			else:
@@ -399,7 +419,8 @@ class PetBotClient:
 
 		self.device.register_function(self.lshome)
 		self.device.register_function(self.psauxf)
-		
+
+		self.device.register_function(self.remote)		
 
 		self.device.register_function(self.version)
 		self.device.register_function(self.update)
@@ -410,7 +431,7 @@ class PetBotClient:
 		#connect
 		logging.info("Listening for commands from server.")
 		#self.last_ping=self.time()
-
+		self.start()
 		self.device.loop(self)
 		logging.warning('Disconnected from command server')
 
@@ -471,6 +492,7 @@ if __name__ == '__main__':
 			pbc.last_ping=-1
 			pbc.connect(args.host, args.port)
 			logging.warning("failed to connect")
+			subprocess.Popen(['sudo /home/pi/petbot/led/led 6 blink 3'],shell=True)
 			if pbc.last_ping==-1:
 				pbc.last_ping=-1
 				pbc.t_count=pbc.t_reset
