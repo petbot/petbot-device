@@ -269,13 +269,17 @@ void * run(void * v) {
 				}
 				go_on-=1;
 			}
+				//if (i%20==0) {
+				//	target_bitrate*=1.3;
+				//	fprintf(stderr,"BITRATE IS %d\n",target_bitrate);
+				//	g_object_set( G_OBJECT(omxh264enc), "target-bitrate", target_bitrate, NULL);
+				//}
 			if (i++%8==0) {
 				guint64 bytes_out;
 				g_object_get (udpsink, "bytes-served", &bytes_out, NULL);
 				int code=GST_BYTES_SENT;
 				write(1,&code,sizeof(int));
 				write(1,&bytes_out,sizeof(guint64));
-				
 				//fprintf(stderr,"BYTES_SERVED %"G_GUINT64_FORMAT"\n", bytes_out);
 				//lets see how many frames have been processed
 				//g_object_get (videorate, "in", &in, "out", &out, "drop", &dropped,
@@ -356,6 +360,7 @@ int main(int argc, char *argv[]) {
 	//int retval; 
 
 
+
 	//listen for input from parent and child
 	while (1>0) {
 		tv.tv_sec = 10;
@@ -370,8 +375,17 @@ int main(int argc, char *argv[]) {
 		}
 		//recieved input from parent
 		if (FD_ISSET(0, &rfds)) {
-			fprintf(stderr,"gst-send->gst-manager says to kill gst-streamer\n");
-			break;
+			int code=0;
+			assert(sizeof(int)==4);
+			int r = read(0,&code,4);
+			fprintf(stderr,"gst-send-> got %d , code is %d\n", r, code);
+			if (r==4 && code==GST_BITRATE) {
+				fprintf(stderr,"CHILD CONSIDERING WHAT PARENT SAID FOR BITRATE\n");
+			} else {
+				fprintf(stderr,"gst-manager->gst-send says to kill gst-streamer\n");
+				
+				break;
+			}
 		//got input from child
 		} else if (FD_ISSET(pipefd[0], &rfds)) {
 			fprintf(stderr,"gst-send->gst-streamer broke\n");

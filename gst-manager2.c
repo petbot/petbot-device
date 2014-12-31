@@ -53,6 +53,9 @@ GstElement *pipeline;
 sem_t restart_mutex;
 int shutdown_now;
 
+
+int requested_bitrate;
+
 int pipe_to_gst[2];
 int pipe_to_tcp[2];
 int pipe_from_gst[2];
@@ -186,10 +189,15 @@ void * gst_client(void * not_used ) { //(char * ip, int udp_port, int target_bit
 				}
 			} else if (FD_ISSET(pipe_to_gst[0], &rfds)) {
 				//fprintf(stderr,"gst_client->read from manager\n");
-				read(pipe_to_gst[0],&code,sizeof(int)); //TODO should check ret val
+				int r = read(pipe_to_gst[0],&code,sizeof(int)); //TODO should check ret val
 				//need to kill child
-				int send_back=KILL_GST;
-				write(pfd_to_child[1],&send_back,sizeof(int));
+				if (r==sizeof(int) && code==GST_BITRATE) {
+					int send_back=GST_BITRATE;
+					write(pfd_to_child[1],&send_back,sizeof(int));
+				} else {
+					int send_back=KILL_GST;
+					write(pfd_to_child[1],&send_back,sizeof(int));
+				}
 			} else if (retval<=0) {
 				//TODO
 			} else {
@@ -254,8 +262,13 @@ void * tcp_client(void * not_used) {
 
 	sem_post(&tcp_client_mutex);
 
+	char * ping = "ping";
 	char * pong = "pong";
+	//char * byte = "byt2";
 	char * byte = "byte";
+	char * advise = "bitr";
+	int tcp_died=TCP_DIED;
+	int gst_bitrate=GST_BITRATE;
         fd_set rfds;
 	//int retval;
 	while (1>0) {
@@ -279,27 +292,57 @@ void * tcp_client(void * not_used) {
 			write(pipe_from_tcp[1],&send_back,sizeof(int));
 			return NULL;
 		} else if (FD_ISSET(sockfd, &rfds)) {
+			//recv from socket!
 	     		r = recvfrom(sockfd,recvline,4,0,NULL,NULL);
+				char b[5];
+				b[0]=0;
+				b[1]=0;
+				b[2]=0;
+				b[3]=0;
+				b[4]=0;
+				memcpy(b,recvline,4);
+				b[4]='\0';
 	      		if (r!=4) {
-				fprintf(stderr, "got something other then ping\n");
+				fprintf(stderr, "got something other then pingi %s , %d\n",b,r);
 				close(sockfd);
-				int send_back=TCP_DIED;;
-				write(pipe_from_tcp[1],&send_back,sizeof(int));
+				write(pipe_from_tcp[1],&tcp_died,sizeof(int));
 				return NULL;
 	      		}
-			if (bytes_sent!=0) {
-				//fprintf(stderr,"sending byte!\n");
-	      			sendto(sockfd,byte,strlen(byte),0,
-		     			(struct sockaddr *)&servaddr,sizeof(servaddr));
-	      			sendto(sockfd,&bytes_sent,sizeof(guint64),0,
-		     			(struct sockaddr *)&servaddr,sizeof(servaddr));
-				bytes_sent=0;
+			recvline[r]='\0';
+			fprintf(stderr,"GOT RESPONSE! |%s|\n",b);
+			if (strcmp(recvline,ping)==0) {
+				//if we have known bytes sent since last, then send
+				if (bytes_sent!=0) {
+					fprintf(stderr,"sending byte!\n");
+					sendto(sockfd,byte,strlen(byte),0,
+						(struct sockaddr *)&servaddr,sizeof(servaddr));
+					sendto(sockfd,&bytes_sent,sizeof(guint64),0,
+						(struct sockaddr *)&servaddr,sizeof(servaddr));
+					bytes_sent=0;
+				} else {
+					fprintf(stderr,"sending pong!\n");
+					sendto(sockfd,pong,strlen(pong),0,
+						(struct sockaddr *)&servaddr,sizeof(servaddr));
+					sleep(1);
+				}
+			} else if (strcmp(recvline,advise)==0) {
+				fprintf(stderr,"GOT ADVISE!\n");
+	     			r = recvfrom(sockfd,&requested_bitrate,4,0,NULL,NULL);
+				if (r!=sizeof(int)) {
+					fprintf(stderr,"Failed to recv bitrate!!\n");
+					close(sockfd);
+					write(pipe_from_tcp[1],&tcp_died,sizeof(int));
+					return NULL;
+				} else {
+					fprintf(stderr,"Advising to change bitrate to %d\n",requested_bitrate);
+					write(pipe_from_tcp[1],&gst_bitrate,sizeof(int));
+				}
+				sleep(1);
+				
 			} else {
-				//fprintf(stderr,"sending pong!\n");
-	      			sendto(sockfd,pong,strlen(pong),0,
-		     			(struct sockaddr *)&servaddr,sizeof(servaddr));
+				//unknown command, just pung
+				sleep(1);
 			}
-			sleep(1);
 		} else {
 			//timeout, kill TCP ?
 			fprintf(stderr, "tcp timeout\n");
@@ -318,6 +361,7 @@ void monitor() {
 	//start listening to news from chil
 	fd_set rfds;
 	struct timeval tv;
+	
 	//int retval;
 	while (1>0) {
 		tv.tv_sec = 10;
@@ -350,16 +394,22 @@ void monitor() {
 		} else if (FD_ISSET(pipe_from_tcp[0],&rfds)) {
 			fprintf(stderr,"READING FROM TCP!\n");
 			int ret=read(pipe_from_tcp[0],&code,sizeof(int));
-			if (ret<=sizeof(int)) {
+			if (ret<sizeof(int)) {
 				code=TCP_DIED;
 			}
-			tcp_status=0;
-			//assert(ret==sizeof(int) && code==TCP_DIED);
-			if (gst_status==1) {
-				int send_back=KILL_GST;
-				write(pipe_to_gst[1],&send_back,sizeof(int));
+			if (code==GST_BITRATE) {
+				int gst_bitrate=GST_BITRATE;
+				fprintf(stderr,"Consider sending child new bitrate, %d\n",gst_bitrate);
+				write(pipe_to_gst[1],&gst_bitrate,sizeof(int));
 			} else {
-				fprintf(stderr,"gst-manager->tcp is dead\n");
+				tcp_status=0;
+				//assert(ret==sizeof(int) && code==TCP_DIED);
+				if (gst_status==1) {
+					int send_back=KILL_GST;
+					write(pipe_to_gst[1],&send_back,sizeof(int));
+				} else {
+					fprintf(stderr,"gst-manager->tcp is dead\n");
+				}
 			}
 		} else {
 			//fprintf(stderr,"MONITOR TIMEOUT\n");
