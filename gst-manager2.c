@@ -309,24 +309,24 @@ void * tcp_client(void * not_used) {
 				return NULL;
 	      		}
 			recvline[r]='\0';
-			fprintf(stderr,"GOT RESPONSE! |%s|\n",b);
+			//fprintf(stderr,"GOT RESPONSE! |%s|\n",b);
 			if (strcmp(recvline,ping)==0) {
 				//if we have known bytes sent since last, then send
 				if (bytes_sent!=0) {
-					fprintf(stderr,"sending byte!\n");
+					//fprintf(stderr,"sending byte!\n");
 					sendto(sockfd,byte,strlen(byte),0,
 						(struct sockaddr *)&servaddr,sizeof(servaddr));
 					sendto(sockfd,&bytes_sent,sizeof(guint64),0,
 						(struct sockaddr *)&servaddr,sizeof(servaddr));
 					bytes_sent=0;
 				} else {
-					fprintf(stderr,"sending pong!\n");
+					//fprintf(stderr,"sending pong!\n");
 					sendto(sockfd,pong,strlen(pong),0,
 						(struct sockaddr *)&servaddr,sizeof(servaddr));
 					sleep(1);
 				}
 			} else if (strcmp(recvline,advise)==0) {
-				fprintf(stderr,"GOT ADVISE!\n");
+				//fprintf(stderr,"GOT ADVISE!\n");
 	     			r = recvfrom(sockfd,&requested_bitrate,4,0,NULL,NULL);
 				if (r!=sizeof(int)) {
 					fprintf(stderr,"Failed to recv bitrate!!\n");

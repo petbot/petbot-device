@@ -378,9 +378,9 @@ int main(int argc, char *argv[]) {
 			int code=0;
 			assert(sizeof(int)==4);
 			int r = read(0,&code,4);
-			fprintf(stderr,"gst-send-> got %d , code is %d\n", r, code);
+			//fprintf(stderr,"gst-send-> got %d , code is %d\n", r, code);
 			if (r==4 && code==GST_BITRATE) {
-				fprintf(stderr,"CHILD CONSIDERING WHAT PARENT SAID FOR BITRATE\n");
+				//fprintf(stderr,"CHILD CONSIDERING WHAT PARENT SAID FOR BITRATE\n");
 			} else {
 				fprintf(stderr,"gst-manager->gst-send says to kill gst-streamer\n");
 				
