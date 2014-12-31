@@ -57,6 +57,7 @@ void * run(void * v) {
 	/* Create the elements */
 	//sprintf(buffer,"v4l2src ! video/x-raw, xres=%d, yres=%d, framerate=30/1 ! videorate !  video/x-raw,framerate=15/1 ! queue ! videoconvert ! omxh264enc target-bitrate=%d control-rate=variable ! rtph264pay pt=96 config-interval=3 ! udpsink host=%s port=%d", xres, yres, target_bitrate, ip, udp_port); 
 	v4l2src = gst_element_factory_make ("v4l2src", "camsrc");
+	videorate = gst_element_factory_make ("videorate", "videorate");
 	videoconvert = gst_element_factory_make ("videoconvert","videoconvert");
 	omxh264enc = gst_element_factory_make ("omxh264enc","omxh264enc");
 	queue = gst_element_factory_make ("queue", "queue");
@@ -73,7 +74,7 @@ void * run(void * v) {
 	/* Create the empty pipeline */
 	pipeline = gst_pipeline_new ("send-pipeline");
 	 
-	if (!pipeline || !v4l2src || !videoconvert || !queue || !queue2 || !omxh264enc || !rtph264pay || !udpsink) {
+	if (!pipeline || !v4l2src || !videorate  || !videoconvert || !queue || !queue2 || !omxh264enc || !rtph264pay || !udpsink) {
 	  g_printerr ("Not all elements could be created.\n");
 	  ret_run();
 	  status=GST_DIED;
@@ -82,10 +83,18 @@ void * run(void * v) {
 	}
 
 	/* Build the pipeline */
-	gst_bin_add_many (GST_BIN (pipeline), v4l2src, queue2, videoconvert, omxh264enc, queue, rtph264pay, udpsink,  NULL);
+	gst_bin_add_many (GST_BIN (pipeline), v4l2src,videorate,  queue2, videoconvert, omxh264enc, queue, rtph264pay, udpsink,  NULL);
 	fprintf(stderr, "Linking pipeline..\n");
 	/* Link the eleemnts */
-	if (gst_element_link_filtered(v4l2src , queue2, capture_caps) !=TRUE ) {
+	if (gst_element_link_filtered(v4l2src , videorate, capture_caps) !=TRUE ) {
+	  g_printerr ("Could not connect v4l2src to videorate.\n");
+	  gst_object_unref (pipeline);
+	  ret_run();
+	  status=GST_DIED;
+	  sem_post(&gst_off);
+	  return NULL;
+	} 
+	if (gst_element_link_filtered(videorate , queue2, capture_caps) !=TRUE ) {
 	  g_printerr ("Could not connect v4l2src to videorate.\n");
 	  gst_object_unref (pipeline);
 	  ret_run();
