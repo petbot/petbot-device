@@ -356,18 +356,22 @@ void * tcp_client(void * not_used) {
 }
 
 
+
 void monitor() {
 	tcp_status=1;
 	gst_status=1;
 	//start listening to news from chil
 	fd_set rfds;
 	struct timeval tv;
-	
+	int check_stdin=1;
 	//int retval;
 	while (1>0) {
 		tv.tv_sec = 10;
 		tv.tv_usec = 0;
 		FD_ZERO(&rfds);
+		if (check_stdin==1) {
+			FD_SET(0, &rfds);
+		}
 		FD_SET(pipe_from_gst[0], &rfds);
 		FD_SET(pipe_from_tcp[0], &rfds);
 		select(MAX(pipe_from_gst[0],pipe_from_tcp[0]) + 1, &rfds, NULL, NULL, &tv);
@@ -412,6 +416,13 @@ void monitor() {
 					fprintf(stderr,"gst-manager->tcp is dead\n");
 				}
 			}
+		} else if (FD_ISSET(0,&rfds)) {
+			fprintf(stderr,"Killing because of input\n");
+			int send_back=KILL_GST;
+			write(pipe_to_gst[1],&send_back,sizeof(int));
+			send_back=KILL_TCP;
+			write(pipe_to_tcp[1],&send_back,sizeof(int));
+			check_stdin=0;
 		} else {
 			//fprintf(stderr,"MONITOR TIMEOUT\n");
 		}

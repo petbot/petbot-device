@@ -44,12 +44,15 @@ class PetBotClient:
 		self.device=None
 		self.enable_led_auto=None
 		self.t=Timer(1.0,self.check_ping)
+		self.t.daemon=True
 		self.t.start()
 		self.check_wifi()
 		self.state=True
 		self.config={}
 		self.start_time=time.time()
 		self.SELFIE_TIMEIN=120
+		self.full_stop=False
+
 	
 	def time(self):
 		return time.time()-self.start_time
@@ -70,6 +73,11 @@ class PetBotClient:
 
 	def stop(self):
 		self.state=False
+		try:
+			self.streamProcess.stdin.close()
+			print >> sys.stderr, "Closed to GST"
+		except:
+			print >> sys.stderr, "Failed to close pipe to gst"
 
 
 	def start(self):
@@ -239,6 +247,7 @@ class PetBotClient:
 	def check_wifi(self):
 		subprocess.Popen(['sudo /sbin/iwconfig wlan0 power off'],shell=True)
 		t=Timer(20.0,self.check_wifi)
+		t.daemon=True
 		t.start()
 
 	def psauxf(self):
@@ -249,6 +258,8 @@ class PetBotClient:
 		
 
 	def check_ping(self):
+		if self.full_stop:
+			return
 		if self.last_ping!=-1:
 			self.t_reset=10.0 #if we already connnected check every 10 seconds
 		else:
@@ -296,6 +307,7 @@ class PetBotClient:
 				#print "all is well",ct,last_ping[0]
 				#pass
 		t=Timer(1.0,self.check_ping)
+		t.daemon=True
 		t.start()
 
 	def ping(self):
@@ -308,7 +320,7 @@ class PetBotClient:
 			if self.enable_pet_selfie and self.time()-self.not_streaming>self.SELFIE_TIMEIN and self.state:
 				if self.selfieProcess==None or self.selfieProcess.poll()!=None: #not started or dead
 					print "Starting selfie process!"
-					self.selfieProcess=subprocess.Popen(self.pet_selfie_cmd,stdin=subprocess.PIPE,stdout=subprocess.PIPE,shell=True,daemon=True)
+					self.selfieProcess=subprocess.Popen(self.pet_selfie_cmd,stdin=subprocess.PIPE,stdout=subprocess.PIPE,shell=True)
 				print >> self.selfieProcess.stdin, "GO"
 				print >> self.selfieProcess.stdin, "GO"
 				self.state="GO"
@@ -316,6 +328,8 @@ class PetBotClient:
 
 
 	def startStream(self,stream_port):
+		if not self.state:
+			return False
 		self.not_streaming=self.time()
 		print >> sys.stderr, "START STREAM!"
 		logging.debug('startStream')
@@ -331,7 +345,7 @@ class PetBotClient:
 		except:
 			print "DID NOT KILL OLD GST"
 		try:
-			self.streamProcess=subprocess.Popen(['/home/pi/petbot/gst-manager', '162.243.126.214', str(stream_port)],daemon=True)
+			self.streamProcess=subprocess.Popen(['/home/pi/petbot/gst-manager', '162.243.126.214', str(stream_port)],stdin=subprocess.PIPE)
 			return True
 		except:
 			return False
@@ -435,12 +449,14 @@ class PetBotClient:
 		self.device.loop(self)
 		logging.warning('Disconnected from command server')
 
+
+
 pbc=PetBotClient()
 
 def signal_handler(signal, frame):
         print('You pressed Ctrl+C!')
+	pbc.full_stop=True
 	pbc.stop()
-        sys.exit(0)
 signal.signal(signal.SIGINT, signal_handler)
 
 
@@ -486,11 +502,14 @@ if __name__ == '__main__':
 	#	ping.selfie=subprocess.Popen(pet_selfie_cmd,stdin=subprocess.PIPE,stdout=subprocess.PIPE,shell=True)
 	#	print >> ping.selfie.stdin, "GO"
 	#	ping.state="GO"
-	while True:
+	while not pbc.full_stop:
 		for x in range(10):
-			print "CONNECTING"
+			print "CONNECTING",pbc.full_stop
 			pbc.last_ping=-1
 			pbc.connect(args.host, args.port)
+			if pbc.full_stop:
+				break
+			print >> sys.stderr, "NOT FULL _STOP!"
 			logging.warning("failed to connect")
 			subprocess.Popen(['sudo /home/pi/petbot/led/led 6 blink 3'],shell=True)
 			if pbc.last_ping==-1:
