@@ -46,7 +46,7 @@ int sockfd;
 
 char * gst_server_ip;
 int gst_udp_port,gst_xres,gst_yres;
-int target_bitrate=500000;
+int target_bitrate=100000;
 //int target_bitrate=700000;
 GstElement *pipeline;
 
@@ -194,6 +194,7 @@ void * gst_client(void * not_used ) { //(char * ip, int udp_port, int target_bit
 				if (r==sizeof(int) && code==GST_BITRATE) {
 					int send_back=GST_BITRATE;
 					write(pfd_to_child[1],&send_back,sizeof(int));
+					write(pfd_to_child[1],&requested_bitrate,sizeof(int));
 				} else {
 					int send_back=KILL_GST;
 					write(pfd_to_child[1],&send_back,sizeof(int));
@@ -264,8 +265,8 @@ void * tcp_client(void * not_used) {
 
 	char * ping = "ping";
 	char * pong = "pong";
-	//char * byte = "byt2";
-	char * byte = "byte";
+	char * byte = "byt2";
+	//char * byte = "byte";
 	char * advise = "bitr";
 	int tcp_died=TCP_DIED;
 	int gst_bitrate=GST_BITRATE;
@@ -334,7 +335,7 @@ void * tcp_client(void * not_used) {
 					write(pipe_from_tcp[1],&tcp_died,sizeof(int));
 					return NULL;
 				} else {
-					fprintf(stderr,"Advising to change bitrate to %d\n",requested_bitrate);
+					//fprintf(stderr,"Advising to change bitrate to %d\n",requested_bitrate);
 					write(pipe_from_tcp[1],&gst_bitrate,sizeof(int));
 				}
 				sleep(1);
@@ -392,14 +393,14 @@ void monitor() {
 				fprintf(stderr,"gst-manager->gst is dead\n");
 			}
 		} else if (FD_ISSET(pipe_from_tcp[0],&rfds)) {
-			fprintf(stderr,"READING FROM TCP!\n");
+			//fprintf(stderr,"READING FROM TCP!\n");
 			int ret=read(pipe_from_tcp[0],&code,sizeof(int));
 			if (ret<sizeof(int)) {
 				code=TCP_DIED;
 			}
 			if (code==GST_BITRATE) {
 				int gst_bitrate=GST_BITRATE;
-				fprintf(stderr,"Consider sending child new bitrate, %d\n",gst_bitrate);
+				//fprintf(stderr,"Consider sending child new bitrate, %d\n",gst_bitrate);
 				write(pipe_to_gst[1],&gst_bitrate,sizeof(int));
 			} else {
 				tcp_status=0;

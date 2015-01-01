@@ -35,7 +35,7 @@ int shutdown_now=0;
 sem_t gst_off;
 
 int pipefd[2];
-
+int requested_bitrate;
 int status=0;
 
 void ret_run() {
@@ -181,6 +181,8 @@ void * run(void * v) {
 	////g_object_set( G_OBJECT(udpsink), "host", ip, "port", udp_port, "async", FALSE, NULL);
 	//g_object_set( G_OBJECT(queue), "max-size-buffers", 0, NULL);
 
+	g_object_set( G_OBJECT(videorate), "max-rate", 32,NULL);
+
 	/* Start playing */
 	ret = gst_element_set_state (pipeline, GST_STATE_PLAYING);
 	if (ret == GST_STATE_CHANGE_FAILURE) {
@@ -269,12 +271,13 @@ void * run(void * v) {
 				}
 				go_on-=1;
 			}
-				//if (i%20==0) {
-				//	target_bitrate*=1.3;
-				//	fprintf(stderr,"BITRATE IS %d\n",target_bitrate);
-				//	g_object_set( G_OBJECT(omxh264enc), "target-bitrate", target_bitrate, NULL);
-				//}
-			if (i++%8==0) {
+				if (i%4==0 && target_bitrate!=requested_bitrate) {
+					//target_bitrate*=1.3;
+					fprintf(stderr,"BITRATE IS %d\n",target_bitrate);
+					target_bitrate=requested_bitrate;
+					g_object_set( G_OBJECT(omxh264enc), "target-bitrate", target_bitrate, NULL);
+				}
+			if (i++%2==0) {
 				guint64 bytes_out;
 				g_object_get (udpsink, "bytes-served", &bytes_out, NULL);
 				int code=GST_BYTES_SENT;
@@ -335,6 +338,7 @@ int main(int argc, char *argv[]) {
 	ip=argv[3];
 	udp_port=atoi(argv[4]);
 	target_bitrate=atoi(argv[5]);
+	requested_bitrate=target_bitrate;
 
 
 	sem_init(&gst_off,0,0);
@@ -380,7 +384,8 @@ int main(int argc, char *argv[]) {
 			int r = read(0,&code,4);
 			//fprintf(stderr,"gst-send-> got %d , code is %d\n", r, code);
 			if (r==4 && code==GST_BITRATE) {
-				//fprintf(stderr,"CHILD CONSIDERING WHAT PARENT SAID FOR BITRATE\n");
+				int r = read(0,&requested_bitrate,4);
+				//fprintf(stderr,"CHILD CONSIDERING WHAT PARENT SAID FOR BITRATE %d\n",requested_bitrate);
 			} else {
 				fprintf(stderr,"gst-manager->gst-send says to kill gst-streamer\n");
 				

@@ -308,7 +308,7 @@ class PetBotClient:
 			if self.enable_pet_selfie and self.time()-self.not_streaming>self.SELFIE_TIMEIN and self.state:
 				if self.selfieProcess==None or self.selfieProcess.poll()!=None: #not started or dead
 					print "Starting selfie process!"
-					self.selfieProcess=subprocess.Popen(self.pet_selfie_cmd,stdin=subprocess.PIPE,stdout=subprocess.PIPE,shell=True)
+					self.selfieProcess=subprocess.Popen(self.pet_selfie_cmd,stdin=subprocess.PIPE,stdout=subprocess.PIPE,shell=True,daemon=True)
 				print >> self.selfieProcess.stdin, "GO"
 				print >> self.selfieProcess.stdin, "GO"
 				self.state="GO"
@@ -331,7 +331,7 @@ class PetBotClient:
 		except:
 			print "DID NOT KILL OLD GST"
 		try:
-			self.streamProcess=subprocess.Popen(['/home/pi/petbot/gst-manager', '162.243.126.214', str(stream_port)])
+			self.streamProcess=subprocess.Popen(['/home/pi/petbot/gst-manager', '162.243.126.214', str(stream_port)],daemon=True)
 			return True
 		except:
 			return False
