@@ -180,6 +180,7 @@ void * run(void * v) {
 	//g_object_set( G_OBJECT(udpsink), "host", ip, "port", udp_port, "sync",TRUE, "async", FALSE, NULL);
 	////g_object_set( G_OBJECT(udpsink), "host", ip, "port", udp_port, "async", FALSE, NULL);
 	//g_object_set( G_OBJECT(queue), "max-size-buffers", 0, NULL);
+	//g_object_set( G_OBJECT(queue2), "max-size-buffers", 0, "max-size-time",0,NULL);
 
 	g_object_set( G_OBJECT(videorate), "max-rate", 32,NULL);
 

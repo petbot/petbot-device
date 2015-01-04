@@ -20,6 +20,9 @@
 #include <stdint.h>
 #include <unistd.h>
 #include <sys/time.h>
+#include <signal.h>
+#include <unistd.h>
+
 
 #include <math.h>
 
@@ -238,8 +241,16 @@ void move() {
 }
 
 
+void signal_callback_handler(int signum) {
+   printf("Caught signal %d\n",signum);
+   digitalWrite(ENPIN,0); //Turn the motor off
+   exit(signum);
+}
+
+
 
 int main (int argc, char ** argv) {
+	signal(SIGINT, signal_callback_handler);
 
 	if (argc!=2) {
 		printf("%s timeout\n",argv[0]);
