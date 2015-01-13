@@ -6,6 +6,10 @@ sudo update-rc.d sendmail disable
 
 sudo cp -f /home/pi/petbot/petbot_reboot /etc/cron.d/
 sudo cp -f /home/pi/petbot/config.txt /boot/config.txt
+sudo cp -f /home/pi/petbot/rt2800usb.conf /etc/modprobe.d/rt2800usb.conf
+
+#update apt-get
+sudo apt-get update
 
 #make sure we have the right v4l-utils installed 
 dpkg -s v4l-utils | grep "1.7.0-3"
@@ -14,5 +18,6 @@ if [ $? -ne 0 ] ; then
 	sudo dpkg -i /home/pi/petbot/v4l-utils_1.7.0-3_armhf.deb
 fi
 
-sudo cp -f /home/pi/petbot/rt2800usb.conf /etc/modprobe.d/rt2800usb.conf
+sudo apt-get install --force-yes -y libcurl3
+
 #sudo rpi-update `cat /home/pi/petbot/kernel`
