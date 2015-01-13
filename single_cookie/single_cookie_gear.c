@@ -92,7 +92,9 @@ float update_stats(float * x, int n, float * out_mean, float * out_stddev) {
         sum1 = sum1 + pow((x[i] - average), 2);
     }
     variance = sum1 / (float)n;
-    std_deviation = MAX(sqrt(variance),3);
+    //std_deviation = MAX(sqrt(variance),3);
+    //std_deviation = MIN(std_deviation,3);
+    std_deviation = 2.5;
     *out_mean=average;
     *out_stddev=std_deviation;
  
@@ -336,7 +338,7 @@ void * sensor_control(void * x )  {
 		float now = running_small_average;
 		float d1 = mid- start;
 		float d2 = mid- now;
-		//fprintf(stderr,"RAVG3 %f %f %f %f | %f\n",running_average,start, mid, now, stddev);
+		fprintf(stderr,"RAVG3 %f %f %f %f | %f\n",running_average,start, mid, now, stddev);
 		if (start>0 && abs(d1)>3*stddev  && abs(d2)>3*stddev && d1*d2>0) {
 			fprintf(stderr,"RAVG3 %f %f %f %f\n",running_average,start, mid, now);
 			dropped++;
