@@ -288,7 +288,7 @@ void * run(void * v) {
 				//lets see how many frames have been processed
 				//g_object_get (videorate, "in", &in, "out", &out, "drop", &dropped,
 				//    "duplicate", &duplicated, NULL);
-				/*guint64 out;
+				guint64 out;
 				g_object_get (videorate, "out", &out, NULL);
 				if (out-last_out<2) {
 					//fprintf(stderr,"%"G_GUINT64_FORMAT" %"G_GUINT64_FORMAT" %"G_GUINT64_FORMAT" %"G_GUINT64_FORMAT"\n",in,out,dropped,duplicated);
@@ -299,7 +299,6 @@ void * run(void * v) {
 					//fprintf(stderr,"Frames out are %"G_GUINT64_FORMAT"\n",out);
 				}
 				last_out=out;
-				i=0;*/
 			}
 			//fprintf(stderr,"TIMEOUT2!\n");
 		} 
