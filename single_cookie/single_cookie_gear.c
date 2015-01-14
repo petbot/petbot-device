@@ -326,17 +326,17 @@ float sensor_avg(float new_reading) {
 
 
 	if (running_average>800) {
-		stddev=1.5;
+		stddev=2.5;
 	} else if (running_average>755) {
-		stddev=0.8;
+		stddev=1.3;
 	} else if (running_average>735) {
-		stddev=0.5;
+		stddev=1.1;
 	} else if (running_average>725) {
-		stddev=0.3;
+		stddev=1.0;
 	} else if (running_average>705) {
-		stddev=0.2;
+		stddev=0.8;
 	} else {
-		stddev=0.15;
+		stddev=0.7;
 	}
 	return running_average;
 }
