@@ -41,6 +41,7 @@
 
 #define TURN_BACK 50
 
+long samples=0;
 uint8_t buf[2];
 char spos[] = "7=0.063\n";
 char epos[] = "7=0.21\n";
@@ -55,11 +56,10 @@ int exit_now=0;
 
 float stddev;
 float mean; 
-#define CALIBRATION_SIZE 120
-#define AVERAGE_SIZE 120
-#define SMALL_AVERAGE_SIZE 30
-float sensor_readings[CALIBRATION_SIZE];
-float sensor_small_averages[CALIBRATION_SIZE];
+#define SMALL_AVERAGE_SIZE 20
+#define AVERAGE_SIZE (9*SMALL_AVERAGE_SIZE)
+float sensor_readings[AVERAGE_SIZE];
+float sensor_small_averages[AVERAGE_SIZE];
 float running_average=0.0;
 float running_small_average=0.0;
 int sensor_index=0;
@@ -92,8 +92,9 @@ float update_stats(float * x, int n, float * out_mean, float * out_stddev) {
         sum1 = sum1 + pow((x[i] - average), 2);
     }
     variance = sum1 / (float)n;
-    //std_deviation = MAX(sqrt(variance),3);
-    //std_deviation = MIN(std_deviation,3);
+    //std_deviation = MAX(sqrt(variance),1);
+    //fprintf(stderr,"%f, %f, %f var, %f\n",sum, average,variance,std_deviation);
+    //std_deviation = MIN(std_deviation,30);
     std_deviation = 2.5;
     *out_mean=average;
     *out_stddev=std_deviation;
@@ -103,6 +104,7 @@ float update_stats(float * x, int n, float * out_mean, float * out_stddev) {
 
 
 unsigned int sample(int channel) {
+	samples++;
 	uint8_t spiData [2] ;
 	uint8_t chanBits ;
 
@@ -114,9 +116,9 @@ unsigned int sample(int channel) {
 	spiData [0] = chanBits ;
 	spiData [1] = 0 ;
 
-	sem_wait(&s_spi);//grab lock
+	//sem_wait(&s_spi);//grab lock
 	wiringPiSPIDataRW (0, spiData, 2) ;
-	sem_post(&s_spi);//release lock
+	//sem_post(&s_spi);//release lock
 	
 	return ((spiData [0] << 7) | (spiData [1] >> 1)) & 0x3FF ;
 }
@@ -125,17 +127,17 @@ void calibrate_sensor(int aq) {
 	//calibrate the sensor
 	if (aq==1) {
 		int i=0;
-		for (i=0; i<CALIBRATION_SIZE; i++) {
+		for (i=0; i<AVERAGE_SIZE; i++) {
 			sensor_readings[i] = sample(0);
 			delay(1);
 		}
-		for (i=0; i<CALIBRATION_SIZE; i++) {
+		for (i=0; i<AVERAGE_SIZE; i++) {
 			sensor_readings[i] = sample(0);
 			sensor_small_averages[i]=0.0;		
 			delay(1);
 		}
 	}
-	update_stats(sensor_readings,CALIBRATION_SIZE,&mean,&stddev);
+	update_stats(sensor_readings,AVERAGE_SIZE,&mean,&stddev);
 	fprintf(stdout, "u/std %f/%f\n", mean, stddev);
 }
 
@@ -321,6 +323,21 @@ float sensor_avg(float new_reading) {
 	}
 	sensor_small_averages[sensor_index]=running_small_average;
 	sensor_index=(sensor_index+1)%AVERAGE_SIZE;
+
+
+	if (running_average>800) {
+		stddev=1.5;
+	} else if (running_average>755) {
+		stddev=0.8;
+	} else if (running_average>735) {
+		stddev=0.5;
+	} else if (running_average>725) {
+		stddev=0.3;
+	} else if (running_average>705) {
+		stddev=0.2;
+	} else {
+		stddev=0.15;
+	}
 	return running_average;
 }
 
@@ -338,9 +355,16 @@ void * sensor_control(void * x )  {
 		float now = running_small_average;
 		float d1 = mid- start;
 		float d2 = mid- now;
-		fprintf(stderr,"RAVG3 %f %f %f %f | %f\n",running_average,start, mid, now, stddev);
-		if (start>0 && abs(d1)>3*stddev  && abs(d2)>3*stddev && d1*d2>0) {
-			fprintf(stderr,"RAVG3 %f %f %f %f\n",running_average,start, mid, now);
+		if (j%20==0) {
+			//fprintf(stderr,"RAVG3 %f | %f\n",now, stddev);
+		}
+		//fprintf(stderr,"RAVG3 %f %f %f %f | %f\n",running_average,start, mid, now, stddev);
+		//fprintf(stderr,"RAVG3 %f | %f\n",now, stddev);
+		//if (j++%5==0) {
+		//	delay(1);
+		//}
+		if (start>0 && abs(d1)>5*stddev  && abs(d2)>5*stddev && d1*d2>0) {
+			fprintf(stderr,"RAVG3 %f %f %f %f |%f\n",running_average,start, mid, now,stddev);
 			dropped++;
 			exit_now=1;
 			if (dropped==to_drop) {
@@ -357,7 +381,8 @@ void * sensor_control(void * x )  {
 
 
 int main (int argc, char ** argv) {
-	
+
+	long start = time(NULL);	
 	signal(SIGINT, signal_callback_handler);
 	signal(SIGTERM, signal_callback_handler);
 
@@ -440,6 +465,10 @@ int main (int argc, char ** argv) {
 	sem_wait(&s_exit);
 	sem_wait(&s_exit);
 
+	long end=time(NULL);
+	
+	float sps=((double)samples)/(end-start);
+	fprintf(stderr,"SPS %f\n",sps);
 	return 0;
 }
 
