@@ -167,6 +167,7 @@ void * run(void * v) {
 	//g_object_set( G_OBJECT(v4l2src) , "do-timestamp", FALSE, "io-mode",2,"always-copy",FALSE,NULL);
 
 
+	//g_object_set( G_OBJECT(v4l2src) , "do-timestamp", FALSE, "io-mode",1,"queue-size",6,NULL);
 	g_object_set( G_OBJECT(v4l2src) , "do-timestamp", FALSE, "io-mode",1,"queue-size",6,NULL);
 	//g_object_set( G_OBJECT(v4l2src) , "do-timestamp", FALSE, "io-mode",2,"queue-size",3,NULL);
 
@@ -274,7 +275,7 @@ void * run(void * v) {
 			}
 				if (i%4==0 && target_bitrate!=requested_bitrate) {
 					//target_bitrate*=1.3;
-					fprintf(stderr,"BITRATE IS %d\n",target_bitrate);
+					//fprintf(stderr,"BITRATE IS %d\n",target_bitrate);
 					target_bitrate=requested_bitrate;
 					g_object_set( G_OBJECT(omxh264enc), "target-bitrate", target_bitrate, NULL);
 				}

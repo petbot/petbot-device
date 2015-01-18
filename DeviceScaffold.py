@@ -27,7 +27,9 @@ LOG_FILENAME="/var/log/supervisor/DEVICE_LOG"
 class PetBotClient:
 	def __init__(self):
 		os.environ['LD_LIBRARY_PATH'] = '/usr/local/lib/'
-		self.pet_selfie_filename="/home/pi/petselfie_enabled"
+		self.pet_selfie_enable_filename="/home/pi/petselfie_enabled"
+		self.pet_selfie_sensitivity_filename="/home/pi/sensitivity"
+		self.pet_selfie_timeout_filename="/home/pi/long_wait_time"
 		self.led_auto_filename="/home/pi/led_always"
 		self.t_reset=10
 		self.t_count=0
@@ -61,6 +63,10 @@ class PetBotClient:
 		#selfie info
 		_, selfie_status = self.get_selfie_status()
 		self.config['selfie_status']=selfie_status
+		_, selfie_timeout = self.get_selfie_timeout()
+		self.config['selfie_timeout']=selfie_timeout
+		_, selfie_sensitivity = self.get_selfie_sensitivity()
+		self.config['selfie_sensitivity']=selfie_sensitivity
 		#version info
 		_, version = self.version()
 		self.config['version']=version	
@@ -69,6 +75,12 @@ class PetBotClient:
 		#volume
 		_, volume = self.get_volume()
 		self.config['volume']=volume
+		#wifi status
+		_, wifi_status = self.get_wifi_status()
+		self.config['wifi_status']=wifi_status
+		#wifi status
+		_, eth_status = self.get_eth_status()
+		self.config['eth_status']=eth_status
 		return (True,self.config)
 
 	def stop(self):
@@ -116,15 +128,15 @@ class PetBotClient:
 	###selfie functions######
 	def get_selfie_status(self):
 		print >> sys.stderr,"Got request for selfie status"
-		self.enable_pet_selfie=os.path.isfile(self.pet_selfie_filename)
+		self.enable_pet_selfie=os.path.isfile(self.pet_selfie_enable_filename)
 		return (True, self.enable_pet_selfie)
 
 	def set_selfie_status(self,enabled):
 		if enabled:
-			open(self.pet_selfie_filename, 'a').close()
+			open(self.pet_selfie_enable_filename, 'a').close()
 		else:
-			if os.path.isfile(self.pet_selfie_filename):
-				os.remove(self.pet_selfie_filename)
+			if os.path.isfile(self.pet_selfie_enable_filename):
+				os.remove(self.pet_selfie_enable_filename)
 		print "got request to set to ", enabled, " now is ", self.get_selfie_status()
 		return (True,self.get_selfie_status()[1])
 
@@ -133,6 +145,44 @@ class PetBotClient:
 		print "toggle selfie", enabled
 		self.set_selfie_status(not enabled)
 		return (True,self.get_selfie_status()[1])
+
+	def get_selfie_timeout(self):
+		try:
+			f=open(self.pet_selfie_timeout_filename)
+			v=float(f.read().strip())
+			f.close()
+			return (True,v)
+		except:
+			return (True,15000)
+
+	def set_selfie_timeout(self,timeout):
+		try:
+			f=open(self.pet_selfie_timeout_filename,'w')
+			print >> f, timeout
+			f.close()
+			_, v=self.get_selfie_timeout()
+			return (True,v)
+		except:
+			return (True,15000)
+	
+	def get_selfie_sensitivity(self):
+		try:
+			f=open(self.pet_selfie_sensitivity_filename)
+			v=float(f.read().strip())
+			f.close()
+			return (True,v)
+		except:
+			return (True,0.3)
+	
+	def set_selfie_sensitivity(self,sensitivity):
+		try:
+			f=open(self.pet_selfie_sensitivity_filename,'w')
+			print >> f, sensitivity
+			f.close()
+			_, v=self.get_selfie_sensitivity()
+			return (True,v)
+		except:
+			return (True,0.3)
 
 	####LED toggle functions########
 	def get_led_status(self):
@@ -161,6 +211,33 @@ class PetBotClient:
 		self.set_led_status(not enabled)
 		return (True,self.get_led_status()[1])
 
+
+	def get_wifi_status(self):
+		try:
+			o=subprocess.check_output(['/sbin/iwconfig','wlan0']).split('\n')
+			for l in o:
+				if l.find('Link')>0:
+					#this is the line
+					l=l.split()
+					link_qual=l[1].split('=')[1]
+					signal_dbm=l[3].split('=')[1]	
+					return (True, link_qual+":"+signal_dbm)
+			return (True,"")
+		except:
+			pass
+		return (False,"")
+
+	def get_eth_status(self):
+		try:
+			o=subprocess.check_output(['/sbin/ifconfig','eth0']).split('\n')
+			for l in o:
+				if l.find('inet')>0:
+					#this is the line
+					return (True, True)
+			return (True,False)
+		except:
+			pass
+		return (False,False)
 
 	def get_volume(self):
 		print "GETTING SOUND"
@@ -418,11 +495,19 @@ class PetBotClient:
 		self.device.register_function(self.playSound)
 		self.device.register_function(self.set_volume)
 		self.device.register_function(self.get_volume)
+		self.device.register_function(self.get_wifi_status)
+		self.device.register_function(self.get_eth_status)
 
 		#selfie methods
 		self.device.register_function(self.set_selfie_status)
 		self.device.register_function(self.get_selfie_status)
 		self.device.register_function(self.toggle_selfie)
+
+		self.device.register_function(self.get_selfie_timeout)
+		self.device.register_function(self.set_selfie_timeout)
+		self.device.register_function(self.get_selfie_sensitivity)
+		self.device.register_function(self.set_selfie_sensitivity)
+
 		#led methods
 		self.device.register_function(self.set_led_status)
 		self.device.register_function(self.get_led_status)

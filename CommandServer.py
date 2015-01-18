@@ -146,7 +146,7 @@ class DeviceListener:
 		#ws=[]
 		errors=0
 		while True:
-			print "DOING STUFF"
+			#print "DOING STUFF"
 			if not pbc.state:
 				print "SHUTDOWN"
 				return
