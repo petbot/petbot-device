@@ -37,7 +37,11 @@ def getWifiNetworks():
 				try:
 					name=str(cell.ssid)
 					if len(name.strip())>1:
-						l.append((cell.signal,cell.encrypted,cell.ssid))
+						enc="None"
+						if cell.encrypted:
+							enc=cell.encryption_type
+						l.append((cell.signal,cell.encrypted,cell.ssid,enc))
+						
 				except:
 					logging.warning("Failed to use cell, %s" , cell.ssid)
 			scanned=True
@@ -52,26 +56,61 @@ def getWifiNetworks():
 #connect to wifi network with password
 ssid_exp = re.compile('^\s*ssid=.*', re.MULTILINE)
 psk_exp = re.compile('^\s*psk=.*', re.MULTILINE)
+wepkey_exp = re.compile('^\s*wep_key0=.*', re.MULTILINE)
 def connectWifi(network, password):
-
+	networks=getWifiNetworks()
+	network_encryption_type="None"
+	for signal,encrypted,ssid,encryption_type in networks:
+		if ssid==network:
+			print signal,encrypted,ssid,encryption_type
+			network_encryption_type=encryption_type	
 	logging.info("Connecting to wifi %s %s", network, password)
 
 	subprocess.check_call(['ifdown', 'wlan0'])
-	
-	# get wifi configuration template	
-	template_file = open('/home/pi/petbot/configs/wifi.conf_template', 'r')
-	wifi_conf = template_file.read()
-	template_file.close()
-	
-	# replace network and password values
-	wpa_info = subprocess.check_output(['wpa_passphrase', network, password])
-	wifi_conf=re.sub(ssid_exp, ssid_exp.search(wpa_info).group(0), wifi_conf)
-	wifi_conf=re.sub(psk_exp, psk_exp.search(wpa_info).group(0), wifi_conf)
+	print network_encryption_type	
+	if network_encryption_type=='wep':
+		# get wifi configuration template	
+		template_file = open('/home/pi/petbot/configs/wifi_wep.conf_template', 'r')
+		wifi_conf = template_file.read()
+		template_file.close()
+		
+		# replace network and password values
+		wifi_conf=re.sub(ssid_exp, "	ssid=\""+network+"\"", wifi_conf)
+		wifi_conf=re.sub(wepkey_exp, "	wep_key0=\""+password+"\"", wifi_conf)
 
-	# write configuration
-	conf_file = open('/home/pi/wifi.conf', 'w')
-	conf_file.write(wifi_conf)
-	conf_file.close()
+		# write configuration
+		conf_file = open('/home/pi/wifi.conf', 'w')
+		conf_file.write(wifi_conf)
+		conf_file.close()
+
+	elif network_encryption_type=="None":
+		# get wifi configuration template	
+		template_file = open('/home/pi/petbot/configs/wifi_unprotected.conf_template', 'r')
+		wifi_conf = template_file.read()
+		template_file.close()
+		
+		# replace network and password values
+		wifi_conf=re.sub(ssid_exp, "	ssid=\""+network+"\"", wifi_conf)
+
+		# write configuration
+		conf_file = open('/home/pi/wifi.conf', 'w')
+		conf_file.write(wifi_conf)
+		conf_file.close()
+	else:
+		# get wifi configuration template	
+		template_file = open('/home/pi/petbot/configs/wifi.conf_template', 'r')
+		wifi_conf = template_file.read()
+		template_file.close()
+		
+		# replace network and password values
+		wpa_info = subprocess.check_output(['wpa_passphrase', network, password])
+		wifi_conf=re.sub(ssid_exp, ssid_exp.search(wpa_info).group(0), wifi_conf)
+		wifi_conf=re.sub(psk_exp, psk_exp.search(wpa_info).group(0), wifi_conf)
+
+		# write configuration
+		conf_file = open('/home/pi/wifi.conf', 'w')
+		conf_file.write(wifi_conf)
+		conf_file.close()
 
 	# bring up wifi and check status
 	subprocess.check_call(['ifup', 'wlan0'])
