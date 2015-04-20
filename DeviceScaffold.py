@@ -323,6 +323,7 @@ class PetBotClient:
 
 	def check_wifi(self):
 		subprocess.Popen(['sudo /sbin/iwconfig wlan0 power off'],shell=True)
+		subprocess.Popen(['sudo /bin/rm /var/spool/mqueue-client/*'], shell=True)
 		t=Timer(20.0,self.check_wifi)
 		t.daemon=True
 		t.start()
