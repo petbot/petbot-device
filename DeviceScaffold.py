@@ -434,7 +434,7 @@ class PetBotClient:
 		print >> sys.stderr, "START STREAM!"
 		logging.debug('startStream')
 		if self.enable_pet_selfie and self.selfieProcess!=None:
-			self.stop_seflie()
+			self.stop_selfie()
 		try:
 			subprocess.check_output(['/usr/bin/killall','gst-manager'])
 		except:
