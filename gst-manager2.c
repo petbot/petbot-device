@@ -198,6 +198,8 @@ void * gst_client(void * not_used ) { //(char * ip, int udp_port, int target_bit
 				} else {
 					int send_back=KILL_GST;
 					write(pfd_to_child[1],&send_back,sizeof(int));
+					retries=0;
+					break;
 				}
 			} else if (retval<=0) {
 				//TODO

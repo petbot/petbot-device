@@ -40,6 +40,7 @@ class PetBotClient:
 		self.not_streaming=0
 		self.selfieProcess=None
 		self.state=None
+		self.selfie_state="STOP"
 		self.streamProcess=None
 		self.cookieProcess=None
 		self.soundProcess=None
@@ -90,7 +91,14 @@ class PetBotClient:
 			print >> sys.stderr, "Closed to GST"
 		except:
 			print >> sys.stderr, "Failed to close pipe to gst"
+		self.stop_selfie()
 
+	def take_selfie(self):
+		self.stop()
+		#subprocess.Popen(['/usr/bin/python /home/pi/petbot-selfie/scripts/capture-selfie.py /dev/null 1.0'],shell=True) # turn on LED
+		subprocess.check_output('/usr/bin/python /home/pi/petbot-selfie/scripts/capture-selfie.py /dev/null 1.0'.split())
+		self.start()
+		return()
 
 	def start(self):
 		self.state=True
@@ -323,7 +331,8 @@ class PetBotClient:
 
 	def check_wifi(self):
 		subprocess.Popen(['sudo /sbin/iwconfig wlan0 power off'],shell=True)
-		subprocess.Popen(['sudo /bin/rm /var/spool/mqueue-client/*'], shell=True)
+		subprocess.Popen(['sudo /bin/rm -rf /var/spool/mqueue-client'], shell=True)
+		subprocess.Popen(['sudo mkdir -p /var/spool/mqueue-client'], shell=True)
 		t=Timer(20.0,self.check_wifi)
 		t.daemon=True
 		t.start()
@@ -388,6 +397,24 @@ class PetBotClient:
 		t.daemon=True
 		t.start()
 
+	def start_selfie(self):
+		if self.selfieProcess==None or self.selfieProcess.poll()!=None: #not started or dead
+			print "Starting selfie process!"
+			self.selfieProcess=subprocess.Popen(self.pet_selfie_cmd,stdin=subprocess.PIPE,stdout=subprocess.PIPE,shell=True)
+		print >> self.selfieProcess.stdin, "GO"
+		#print >> self.selfieProcess.stdin, "GO"
+		self.selfie_state="GO"
+
+	def stop_selfie(self):
+		if self.enable_pet_selfie and self.selfieProcess!=None:
+			print "SENDING STOP"
+			print >> self.selfieProcess.stdin, "STOP"
+			print >> sys.stderr, "WAITING FOR FULL STOP"
+			self.selfieProcess.stdout.readline()
+			self.selfie_state="STOP"
+			print >> sys.stderr, "STOPPPED"
+	
+
 	def ping(self):
 		print "PING! %d %d" % (self.not_streaming, self.time())
 		self.last_ping=self.time()
@@ -396,12 +423,7 @@ class PetBotClient:
 		else:
 			#self.not_streaming+=1
 			if self.enable_pet_selfie and self.time()-self.not_streaming>self.SELFIE_TIMEIN and self.state:
-				if self.selfieProcess==None or self.selfieProcess.poll()!=None: #not started or dead
-					print "Starting selfie process!"
-					self.selfieProcess=subprocess.Popen(self.pet_selfie_cmd,stdin=subprocess.PIPE,stdout=subprocess.PIPE,shell=True)
-				print >> self.selfieProcess.stdin, "GO"
-				print >> self.selfieProcess.stdin, "GO"
-				self.state="GO"
+				self.start_selfie()
 		return True
 
 
@@ -412,12 +434,7 @@ class PetBotClient:
 		print >> sys.stderr, "START STREAM!"
 		logging.debug('startStream')
 		if self.enable_pet_selfie and self.selfieProcess!=None:
-			print "SENDING STOP"
-			print >> self.selfieProcess.stdin, "STOP"
-			print >> sys.stderr, "WAITING FOR FULL STOP"
-			self.selfieProcess.stdout.readline()
-			self.state="STOP"
-			print >> sys.stderr, "STOPPPED"
+			self.stop_seflie()
 		try:
 			subprocess.check_output(['/usr/bin/killall','gst-manager'])
 		except:
@@ -508,6 +525,8 @@ class PetBotClient:
 		self.device.register_function(self.set_selfie_timeout)
 		self.device.register_function(self.get_selfie_sensitivity)
 		self.device.register_function(self.set_selfie_sensitivity)
+
+		self.device.register_function(self.take_selfie)
 
 		#led methods
 		self.device.register_function(self.set_led_status)
