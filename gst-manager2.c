@@ -13,15 +13,15 @@
 #    You should have received a copy of the GNU General Public License
 #    along with Foobar.  If not, see <http://www.gnu.org/licenses/>. */
 
-#include <gst/gst.h>
 #include <stdio.h>  
 #include <stdlib.h> 
 #include <string.h>
 #include <time.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <OMX_Video.h>
 #include <unistd.h>
+#define MIN(a,b) (((a)<(b))?(a):(b))
+#define MAX(a,b) (((a)>(b))?(a):(b))
 
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -37,7 +37,7 @@
 #include "codes.h"
 
 
-guint64 bytes_sent;
+long bytes_sent;
 
 sem_t tcp_client_mutex;
 char * tcp_server_ip;
@@ -48,7 +48,7 @@ char * gst_server_ip;
 int gst_udp_port,gst_xres,gst_yres;
 int target_bitrate=100000;
 //int target_bitrate=700000;
-GstElement *pipeline;
+//GstElement *pipeline;
 
 sem_t restart_mutex;
 int shutdown_now;
@@ -148,9 +148,13 @@ void * gst_client(void * not_used ) { //(char * ip, int udp_port, int target_bit
 			dup2(pfd_from_child[1],1); //stdout to write pipe of from child
 			//child
 			fprintf(stderr, "passing in %s x %s\n",s_xres,s_yres);
-			char * args[] = { "/home/pi/petbot/gst-send", s_xres,s_yres,gst_server_ip,s_udp_port, s_bitrate, NULL };
+			//char * args[] = { "/home/pi/petbot/gst-send", s_xres,s_yres,gst_server_ip,s_udp_port, s_bitrate, NULL };
+			//char * args[] = { "/home/pi/petbot/gst-send", s_xres,s_yres,gst_server_ip,s_udp_port, s_bitrate, NULL };
+			char bufferX[1024];
+			sprintf(bufferX, "rtp://%s:%s", gst_server_ip, s_udp_port);
+			char * args[] = { "/usr/bin/sudo", "/usr/bin/ffmpeg", "-f", "video4linux2" ,"-i", "/dev/video0", "-s", "640x480", "-r", "25", "-an", "-g", "1",  "-pix_fmt", "nv12", "-vcodec", "cedrus264", "-qp", "30",  "-f", "rtp", bufferX , NULL};
 			int r = execv(args[0],args);
-			fprintf(stderr,"SHOULD NEVER REACH HERE %d\n",r);
+			fprintf(stderr,"SHOULD NEVER REACH HERE SHIT %d\n",r);
 			exit(1);
 		}
 		close(pfd_to_child[0]); //close the write end
@@ -181,8 +185,9 @@ void * gst_client(void * not_used ) { //(char * ip, int udp_port, int target_bit
 				}
 				if (code==GST_BYTES_SENT) {
 					//bytes_sent=0;
-					read(pfd_from_child[0],&bytes_sent,sizeof(guint64)); //TODO shoudl check ret val
-					//fprintf(stderr,"BYTES SENT GOT FROM GST_SEND %"G_GUINT64_FORMAT"\n",bytes_sent);
+					//read(pfd_from_child[0],&bytes_sent,sizeof(guint64)); //TODO shoudl check ret val
+					//fprintf(stderr,"BYTES SENT GOT FROM GST_SEND %"G_GUINT64_FORMAT"\n",bytes_sent)
+					fprintf(stderr,"OH OH NOT SUPPORTED ON A20\n");
 				} else {
 					fprintf(stderr,"gst_client->gst-send sends code %d\n",code);
 					break;
@@ -217,7 +222,7 @@ void * gst_client(void * not_used ) { //(char * ip, int udp_port, int target_bit
 		//figure out if we should try to restart and if so how
 		if (code & GST_DIED) {
 			fprintf(stderr, "SHOULD WE RESTART\n");
-			reload_uvc();
+			//reload_uvc();
 			retries--;
 		}
 		waitpid(pid,NULL,0);
@@ -316,20 +321,20 @@ void * tcp_client(void * not_used) {
 			if (strcmp(recvline,ping)==0) {
 				//if we have known bytes sent since last, then send
 				if (bytes_sent!=0) {
-					//fprintf(stderr,"sending byte!\n");
+					fprintf(stderr,"sending byte!\n");
 					sendto(sockfd,byte,strlen(byte),0,
 						(struct sockaddr *)&servaddr,sizeof(servaddr));
-					sendto(sockfd,&bytes_sent,sizeof(guint64),0,
+					sendto(sockfd,&bytes_sent,sizeof(long),0,
 						(struct sockaddr *)&servaddr,sizeof(servaddr));
 					bytes_sent=0;
 				} else {
-					//fprintf(stderr,"sending pong!\n");
+					fprintf(stderr,"sending pong!\n");
 					sendto(sockfd,pong,strlen(pong),0,
 						(struct sockaddr *)&servaddr,sizeof(servaddr));
 					sleep(1);
 				}
 			} else if (strcmp(recvline,advise)==0) {
-				//fprintf(stderr,"GOT ADVISE!\n");
+				fprintf(stderr,"GOT ADVISE!\n");
 	     			r = recvfrom(sockfd,&requested_bitrate,4,0,NULL,NULL);
 				if (r!=sizeof(int)) {
 					fprintf(stderr,"Failed to recv bitrate!!\n");

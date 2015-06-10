@@ -14,7 +14,7 @@ from time import sleep
 from threading import Timer, Lock
 import sys
 import os
-import RPi.GPIO as GPIO
+#import RPi.GPIO as GPIO
 import signal
 #from gevent import monkey
 #monkey.patch_all()
@@ -319,6 +319,8 @@ class PetBotClient:
 
 
 	def deviceID(self):
+		return '00000000bda01c31'
+		return self.id_generator()
 		logging.debug('deviceID')
 		cpu_file = open('/proc/cpuinfo','r')
 		for line in cpu_file:
@@ -327,7 +329,6 @@ class PetBotClient:
 				return info[1].strip()
 
 		raise Exception('Could not find device ID')
-		return id_generator()
 
 	def check_wifi(self):
 		subprocess.Popen(['sudo /sbin/iwconfig wlan0 power off'],shell=True)
@@ -439,11 +440,15 @@ class PetBotClient:
 			subprocess.check_output(['/usr/bin/killall','gst-manager'])
 		except:
 			print "DID NOT KILL OLD GST"
-		try:
+		if 1==1: #try:
 			self.streamProcess=subprocess.Popen(['/home/pi/petbot/gst-manager', '162.243.126.214', str(stream_port)],stdin=subprocess.PIPE)
+			#cmd='sudo /usr/bin/ffmpeg -f video4linux2 -i /dev/video0 -s 640x480 -r 25 -an -g 1 -pix_fmt nv12 -vcodec cedrus264 -qp 30  -f rtp rtp://162.243.126.214:%s' % str(stream_port)
+			#print "RUNNING ", cmd.split()
+			#self.streamProcess=subprocess.Popen(cmd.split(),stdin=subprocess.PIPE)
+			print "RAN ", self.streamProcess
 			return True
-		except:
-			return False
+		#except:
+		#	return False
 
 
 	def sendCookie(self):
@@ -569,7 +574,8 @@ pi_server="127.0.0.1"
 pi_server_port="54000"
 
 try:
-    h=open('/home/pi/petbot/petbot.conf')
+    #h=open('/home/pi/petbot/petbot.conf')
+    h=open('/home/misko/petbot/petbot.conf')
     for line in h.readlines():
         line=line.split()
         if line[0]=="pi-server":
