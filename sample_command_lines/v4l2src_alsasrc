@@ -1,0 +1,1 @@
+gst-launch-0.10 v4l2src device=/dev/video1 ! cedar_h264enc ! h264parse ! queue ! mux. alsasrc device=hw:1 ! audioconvert ! voaacenc ! mux. flvmux name=mux ! tcpserversink port=9090
