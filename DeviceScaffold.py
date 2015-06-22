@@ -49,7 +49,7 @@ class PetBotClient:
 		self.t=Timer(1.0,self.check_ping)
 		self.t.daemon=True
 		self.t.start()
-		self.check_wifi()
+		#self.check_wifi()
 		self.state=True
 		self.config={}
 		self.start_time=time.time()
@@ -575,7 +575,7 @@ pi_server_port="54000"
 
 try:
     #h=open('/home/pi/petbot/petbot.conf')
-    h=open('/home/misko/petbot/petbot.conf')
+    h=open('/home/pi/petbot/petbot.conf')
     for line in h.readlines():
         line=line.split()
         if line[0]=="pi-server":

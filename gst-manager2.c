@@ -149,10 +149,10 @@ void * gst_client(void * not_used ) { //(char * ip, int udp_port, int target_bit
 			//child
 			fprintf(stderr, "passing in %s x %s\n",s_xres,s_yres);
 			//char * args[] = { "/home/pi/petbot/gst-send", s_xres,s_yres,gst_server_ip,s_udp_port, s_bitrate, NULL };
-			//char * args[] = { "/home/pi/petbot/gst-send", s_xres,s_yres,gst_server_ip,s_udp_port, s_bitrate, NULL };
-			char bufferX[1024];
-			sprintf(bufferX, "rtp://%s:%s", gst_server_ip, s_udp_port);
-			char * args[] = { "/usr/bin/sudo", "/usr/bin/ffmpeg", "-f", "video4linux2" ,"-i", "/dev/video0", "-s", "640x480", "-r", "25", "-an", "-g", "1",  "-pix_fmt", "nv12", "-vcodec", "cedrus264", "-qp", "30",  "-f", "rtp", bufferX , NULL};
+			char * args[] = { "/home/pi/petbot/gst-send", s_xres,s_yres,gst_server_ip,s_udp_port, s_bitrate, NULL };
+			//char bufferX[1024];
+			//sprintf(bufferX, "rtp://%s:%s", gst_server_ip, s_udp_port);
+			//char * args[] = { "/usr/bin/sudo", "/root/FFmpeg-Cedrus/ffmpeg", "-f", "video4linux2" ,"-i", "/dev/video0", "-s", "640x480", "-r", "30", "-an", "-g", "1",  "-pix_fmt", "nv12", "-vcodec", "cedrus264", "-qp", "40",  "-f", "rtp", bufferX , NULL};
 			int r = execv(args[0],args);
 			fprintf(stderr,"SHOULD NEVER REACH HERE SHIT %d\n",r);
 			exit(1);
