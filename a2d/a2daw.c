@@ -31,21 +31,18 @@
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
 
-
+long udelay=0;
 static uint32_t speed = 1000000;
 static int spi_fd = 0;
 
 static char       *spiDev0 = "/dev/spidev0.0" ;
-static char       *spiDev1 = "/dev/spidev0.1" ;
 
 static uint8_t     spiMode   = 0 ;
 static uint8_t     spiBPW    = 8 ;
 static uint16_t    spiDelay  = 0;
 
-float stddev;
-float mean; 
 
-int setupSPI (int speed) {
+int setupSPI () {
 
   if ((spi_fd = open (spiDev0, O_RDWR)) < 0)
     return -1 ;
@@ -79,6 +76,72 @@ int RWSPI (int channel, unsigned char *data, int len) {
   return ioctl (spi_fd, SPI_IOC_MESSAGE(1), &spi) ;
 }
 
+struct spi_ioc_transfer xfer[2];
+
+int spi_init ()
+{
+    __u8    mode, lsb, bits;
+    __u32 speedx=speed;
+
+    if ((spi_fd = open(spiDev0,O_RDWR)) < 0)
+    {
+        printf("Failed to open the bus.");
+        /* ERROR HANDLING; you can check errno to see what went wrong */
+        exit(1);
+    }
+
+    /*multiple modes:
+      mode |= SPI_LOOP; 
+      mode |= SPI_CPHA; 
+      mode |= SPI_CPOL; 
+      mode |= SPI_LSB_FIRST; 
+      mode |= SPI_CS_HIGH; 
+      mode |= SPI_3WIRE; 
+      mode |= SPI_NO_CS; 
+      mode |= SPI_READY;
+      if (ioctl(file, SPI_IOC_WR_MODE, &mode)<0)       {
+      perror("can't set spi mode");
+      return;
+      }
+     */
+
+    if (ioctl(spi_fd, SPI_IOC_RD_MODE, &mode) < 0)
+    {
+        perror("SPI rd_mode");
+        return -1;
+    }
+    if (ioctl(spi_fd, SPI_IOC_RD_LSB_FIRST, &lsb) < 0)
+    {
+        perror("SPI rd_lsb_fist");
+        return -1;
+    }
+    if (ioctl(spi_fd, SPI_IOC_RD_BITS_PER_WORD, &bits) < 0)
+    {
+        perror("SPI bits_per_word");
+        return -1;
+    }
+    if (ioctl(spi_fd, SPI_IOC_RD_MAX_SPEED_HZ, &speedx) < 0)
+    {
+        perror("SPI max_speed_hz");
+        return -1;
+    }
+
+
+    fprintf(stderr,"%s: spi mode %d, %d bits %sper word, %d Hz max\n",
+        spiDev0, mode, bits, lsb ? "(lsb first) " : "", speedx);
+
+    xfer[0].cs_change = 0; // Keep CS activated
+    xfer[0].delay_usecs = udelay;
+    xfer[0].speed_hz = speedx;
+    xfer[0].bits_per_word = 8; // 8-bites per word only
+
+    xfer[1].cs_change = 0;
+    xfer[1].delay_usecs = 0;
+    xfer[1].speed_hz = speedx;
+    xfer[1].bits_per_word = 8;
+
+    return spi_fd;
+}
 
 
 unsigned int sample(int channel) {
@@ -95,7 +158,7 @@ unsigned int sample(int channel) {
 	spiData [1] = 0 ;
 
 	RWSPI (0, spiData, 2) ;
-
+        fprintf(stderr,"%x|%x\n",spiData[0],spiData[1]);
 	return ((spiData [0] << 7) | (spiData [1] >> 1)) & 0x3FF ;
 }
 
@@ -113,13 +176,17 @@ void calibrate_sensor(int aq) {
 
 int main (int argc, char ** argv) {
 
-
-	//wiringPiSetupGpio();
-	//lets setup enable pin
-	if (setupSPI( 1000000) < 0) {
+	if (spi_init()<0) {
 		fprintf (stderr, "SPI Setup failed: %s\n", strerror (errno));
 		exit(errno);
 	}
+	//return 0;
+	//wiringPiSetupGpio();
+	//lets setup enable pin
+	/*if (setupSPI( 1000000) < 0) {
+		fprintf (stderr, "SPI Setup failed: %s\n", strerror (errno));
+		exit(errno);
+	}*/
 
 	calibrate_sensor(1);
 	return 0;
