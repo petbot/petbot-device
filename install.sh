@@ -41,6 +41,7 @@ fi
 sudo apt-get update
 sudo apt-get install --force-yes -y libgstreamer1.0-0-dbg gstreamer1.0-tools libgstreamer-plugins-base1.0-0 \
 	gstreamer1.0-plugins-good gstreamer1.0-plugins-bad-dbg gstreamer1.0-omx gstreamer1.0-alsa
+sudo apt-get install libgstreamer1.0-dev imagemagick
 
 # wiring PI
 git clone git://git.drogon.net/wiringPi ~/wiringPi
